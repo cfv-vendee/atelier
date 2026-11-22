@@ -1,0 +1,17 @@
+{
+  "name": "CFV Atelier",
+  "short_name": "CFV Atelier",
+  "description": "Signalement et suivi des pannes du matériel et de la voie du Chemin de fer de la Vendée",
+  "lang": "fr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F4F5F7",
+  "theme_color": "#1D5B43",
+  "icons": [
+    { "src": "img/icone-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/icone-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "img/icone-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

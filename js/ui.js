@@ -1,0 +1,151 @@
+// Libellés, mise en forme et petits composants partagés.
+
+export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+export const ROLES = {
+  bureau: { label: 'Bureau · lecture seule', cls: 'grey' },
+  conducteur: { label: 'Conducteur', cls: 'blue' },
+  conducteur_technicien: { label: 'Conducteur + technicien', cls: 'green' },
+  technicien: { label: 'Technicien', cls: 'orange' },
+};
+export const GRAVITES = {
+  bloquante: { label: 'Bloquante', aide: 'Interdit la circulation ou la mise en service', couleur: '#B42318', cls: 'red' },
+  surveiller: { label: 'À surveiller', aide: 'On peut rouler, mais il faut intervenir', couleur: '#C26A00', cls: 'orange' },
+  mineure: { label: 'Mineure', aide: 'Confort, esthétique, petit entretien', couleur: '#8A919C', cls: 'grey' },
+};
+export const STATUTS = {
+  ouverte: { label: 'Ouverte', cls: 'red' },
+  prise_en_charge: { label: 'Prise en charge', cls: 'orange' },
+  en_cours: { label: 'En cours', cls: 'orange' },
+  reparee: { label: 'Réparée', cls: 'green' },
+};
+export const ETATS = {
+  service: { label: 'En service', cls: 'green' },
+  surveiller: { label: 'À surveiller', cls: 'orange' },
+  immobilise: { label: 'Immobilisé', cls: 'red' },
+};
+export const ELEMENTS = {
+  pn: 'Passage à niveau', rail: 'Rail', eclisse: 'Éclisse', traverse: 'Traverse', ballast: 'Ballast',
+  aiguillage: 'Aiguillage', ouvrage: 'Viaduc / pont', vegetation: 'Végétation', autre: 'Autre',
+};
+export const CATEGORIES = {
+  vapeur: { label: 'Vapeur', code: 'VAP', groupe: 'vapeur' },
+  diesel: { label: 'Diesel', code: 'DIE', groupe: 'diesel' },
+  locotracteur: { label: 'Locotracteur', code: 'LOC', groupe: 'loco' },
+  manoeuvre: { label: 'Manœuvre', code: 'MAN', groupe: 'loco' },
+  autorail: { label: 'Autorail', code: 'AR', groupe: 'autorail' },
+  draisine: { label: 'Draisine', code: 'DR', groupe: 'autorail' },
+  voiture: { label: 'Voiture', code: 'VOI', groupe: 'voiture' },
+};
+export const EVENEMENTS = {
+  declaration: { label: 'Panne déclarée', couleur: '#B42318' },
+  commentaire: { label: 'Commentaire', couleur: '#8A919C' },
+  prise_en_charge: { label: 'Prise en charge', couleur: '#C26A00' },
+  intervention: { label: 'Intervention', couleur: '#C26A00' },
+  reparee: { label: 'Réparée', couleur: '#146C43' },
+  reouverte: { label: 'Rouverte', couleur: '#B42318' },
+};
+
+export const peutSignaler = (me) => !!me?.actif && (me.role !== 'bureau' || me.est_admin);
+export const peutReparer = (me) => !!me?.actif && (['conducteur_technicien', 'technicien'].includes(me.role) || me.est_admin);
+
+export const numPanne = (p) => `${p.annee}-${String(p.numero).padStart(3, '0')}`;
+export const nomEngin = (e) => (e ? `${e.designation}${e.surnom ? ` « ${e.surnom} »` : ''}` : '');
+export const nomPersonne = (p) => (p ? `${p.prenom || ''} ${p.nom ? p.nom.charAt(0) + '.' : ''}`.trim() || 'Membre' : 'Ancien membre');
+export const formatPk = (pk) => (pk == null || pk === '' ? '' : `PK ${String(Number(pk).toFixed(3)).replace(/\.?0+$/, '').replace('.', ',')}`);
+export const sujetPanne = (p) => (p.cible === 'materiel' ? nomEngin(p.engin) : `Voie · ${ELEMENTS[p.element] || ''}${p.pk != null ? ' · ' + formatPk(p.pk) : ''}`);
+
+export function quand(date) {
+  const d = new Date(date), now = new Date();
+  const min = Math.round((now - d) / 60000);
+  if (min < 1) return "à l'instant";
+  if (min < 60) return `il y a ${min} min`;
+  const h = Math.round(min / 60);
+  const hier = new Date(now); hier.setDate(now.getDate() - 1);
+  if (d.toDateString() === now.toDateString()) return `il y a ${h} h`;
+  const heure = d.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+  if (d.toDateString() === hier.toDateString()) return `hier ${heure}`;
+  return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: d.getFullYear() === now.getFullYear() ? undefined : 'numeric' }) + ` ${heure}`;
+}
+
+const ICONES = {
+  accueil: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  materiel: '<rect x="4" y="3" width="16" height="13" rx="3"/><path d="M4 10h16M8 20l-2 2M16 20l2 2M8 16v.01M16 16v.01"/>',
+  voie: '<path d="M8 2 6 22M16 2l2 20M7.5 6h9M7 11h10M6.5 16h11"/>',
+  profil: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.2-6 8-6s7 2 8 6"/>',
+  plus: '<path d="M12 5v14M5 12h14"/>',
+  retour: '<path d="M15 18l-6-6 6-6"/>',
+  chevron: '<path d="M9 6l6 6-6 6"/>',
+  photo: '<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/>',
+  cible: '<circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/><circle cx="12" cy="12" r="7"/>',
+  recherche: '<circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/>',
+  bouclier: '<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/>',
+  crayon: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
+  check: '<path d="M20 6L9 17l-5-5"/>',
+};
+export const icone = (nom, taille = 24, extra = '') =>
+  `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${ICONES[nom]}</svg>`;
+
+export function pastille(def) {
+  return `<span class="pastille ${def.cls}">${esc(def.label)}</span>`;
+}
+
+export function toast(message) {
+  document.querySelector('.toast')?.remove();
+  const t = document.createElement('div');
+  t.className = 'toast'; t.setAttribute('role', 'status'); t.textContent = message;
+  document.body.append(t);
+  setTimeout(() => t.remove(), 3200);
+}
+
+// Fenêtre en bas d'écran. Renvoie { el, fermer }.
+export function feuille(titre, contenu) {
+  const voile = document.createElement('div');
+  voile.className = 'voile';
+  voile.innerHTML = `<div class="feuille" role="dialog" aria-modal="true" aria-label="${esc(titre)}"><h2>${esc(titre)}</h2>${contenu}</div>`;
+  const fermer = () => { voile.remove(); document.removeEventListener('keydown', echap); };
+  const echap = (e) => { if (e.key === 'Escape') fermer(); };
+  voile.addEventListener('click', (e) => { if (e.target === voile) fermer(); });
+  document.addEventListener('keydown', echap);
+  document.body.append(voile);
+  voile.querySelector('input, textarea, select, button')?.focus();
+  return { el: voile.querySelector('.feuille'), fermer };
+}
+
+// Réduit une photo (1600 px max, JPEG) avant envoi : plus rapide, surtout sur la voie.
+export async function compresser(fichier, max = 1600, qualite = 0.8) {
+  try {
+    const bitmap = await createImageBitmap(fichier);
+    const r = Math.min(1, max / Math.max(bitmap.width, bitmap.height));
+    const c = document.createElement('canvas');
+    c.width = Math.round(bitmap.width * r); c.height = Math.round(bitmap.height * r);
+    c.getContext('2d').drawImage(bitmap, 0, 0, c.width, c.height);
+    return await new Promise((ok) => c.toBlob((b) => ok(b || fichier), 'image/jpeg', qualite));
+  } catch {
+    return fichier;
+  }
+}
+
+// Sélecteur de photos avec aperçu. Renvoie une fonction qui donne les fichiers choisis.
+export function brancherPhotos(conteneur) {
+  const fichiers = [];
+  const input = conteneur.querySelector('input[type=file]');
+  const apercu = conteneur.querySelector('.photos');
+  input.addEventListener('change', () => {
+    for (const f of input.files) {
+      fichiers.push(f);
+      const img = document.createElement('img');
+      img.alt = 'Photo jointe'; img.src = URL.createObjectURL(f);
+      apercu.append(img);
+    }
+    input.value = '';
+  });
+  return () => fichiers;
+}
+export const champPhotos = (id) => `
+  <div class="champ" data-photos>
+    <label class="ajout-photo" for="${id}">${icone('photo', 20)}Ajouter des photos</label>
+    <input id="${id}" class="sr" type="file" accept="image/*" multiple>
+    <div class="photos"></div>
+  </div>`;

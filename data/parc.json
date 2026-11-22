@@ -1,0 +1,758 @@
+{
+ "series": {
+  "y7217": {
+   "nom": "Locotracteurs Y 7217 / 7294 / 7303",
+   "fiche": [
+    [
+     "Constructeur",
+     "Billard, Decauville"
+    ],
+    [
+     "Année de fabrication",
+     "Après 1960"
+    ],
+    [
+     "Longueur",
+     "8,94 m"
+    ],
+    [
+     "Hauteur",
+     "3,87 m"
+    ],
+    [
+     "Masse",
+     "32 t"
+    ],
+    [
+     "Transmission",
+     "Hydraulique"
+    ],
+    [
+     "Moteur",
+     "Poyaud 6 cylindres"
+    ],
+    [
+     "Puissance",
+     "175 ch"
+    ],
+    [
+     "Vitesse max.",
+     "54 km/h"
+    ]
+   ]
+  },
+  "bt": {
+   "nom": "Boîtes à tonnerre autrichiennes (×7)",
+   "fiche": [
+    [
+     "Compagnie",
+     "ÖBB"
+    ],
+    [
+     "Années de construction",
+     "1903 à 1913, reconstruites en 1948"
+    ],
+    [
+     "Longueur",
+     "12,5 m à près de 14 m"
+    ],
+    [
+     "Hauteur",
+     "4 m"
+    ],
+    [
+     "Masse à vide",
+     "15 à 17 t"
+    ],
+    [
+     "Nombre de places",
+     "52"
+    ],
+    [
+     "Vitesse max.",
+     "80 km/h"
+    ]
+   ]
+  }
+ },
+ "engins": [
+  {
+   "cat": "vapeur",
+   "des": "030 T 6",
+   "sur": "T6",
+   "cons": "Fives-Lille",
+   "an": "1948",
+   "fiche": [
+    [
+     "Type",
+     "030 T"
+    ],
+    [
+     "Constructeur",
+     "Fives-Lille"
+    ],
+    [
+     "Année de fabrication",
+     "1948"
+    ],
+    [
+     "Longueur",
+     "8,81 m"
+    ],
+    [
+     "Hauteur",
+     "3,90 m"
+    ],
+    [
+     "Masse à vide",
+     "48 t"
+    ],
+    [
+     "Puissance",
+     "500 ch environ"
+    ],
+    [
+     "Vitesse max.",
+     "50 km/h"
+    ],
+    [
+     "Consommation",
+     "1,5 t de charbon et 15 m³ d’eau / 100 km"
+    ]
+   ],
+   "ordre": 1
+  },
+  {
+   "cat": "vapeur",
+   "des": "030 T 8143",
+   "sur": "Hannibal",
+   "cons": "SACM",
+   "an": "1945",
+   "fiche": [
+    [
+     "Type",
+     "030 T"
+    ],
+    [
+     "Constructeur",
+     "SACM"
+    ],
+    [
+     "Année de fabrication",
+     "1945"
+    ],
+    [
+     "Longueur",
+     "9,00 m"
+    ],
+    [
+     "Hauteur",
+     "3,90 m"
+    ],
+    [
+     "Masse à vide",
+     "52 t"
+    ],
+    [
+     "Puissance",
+     "700 ch"
+    ],
+    [
+     "Vitesse max.",
+     "50 km/h"
+    ],
+    [
+     "Consommation",
+     "1,5 t de charbon et 15 m³ d’eau / 100 km"
+    ]
+   ],
+   "ordre": 2
+  },
+  {
+   "cat": "diesel",
+   "des": "BB 63866",
+   "cons": "",
+   "an": "1963",
+   "fiche": [
+    [
+     "Transmission",
+     "Diesel-électrique"
+    ],
+    [
+     "Année de construction",
+     "1963"
+    ],
+    [
+     "Longueur",
+     "14,68 m"
+    ],
+    [
+     "Hauteur",
+     "3,98 m"
+    ],
+    [
+     "Masse",
+     "68 t"
+    ],
+    [
+     "Puissance",
+     "825 ch"
+    ],
+    [
+     "Vitesse max.",
+     "80 km/h"
+    ],
+    [
+     "Consommation",
+     "100 L de gazole / 100 km"
+    ]
+   ],
+   "ordre": 3
+  },
+  {
+   "cat": "diesel",
+   "des": "C 61042",
+   "cons": "",
+   "an": "1953",
+   "fiche": [
+    [
+     "Transmission",
+     "Diesel-électrique"
+    ],
+    [
+     "Année de fabrication",
+     "1953"
+    ],
+    [
+     "Longueur",
+     "9,50 m"
+    ],
+    [
+     "Hauteur",
+     "4,10 m"
+    ],
+    [
+     "Masse",
+     "53 t"
+    ],
+    [
+     "Puissance",
+     "510 ch"
+    ],
+    [
+     "Vitesse max.",
+     "60 km/h"
+    ],
+    [
+     "Consommation",
+     "200 L de gazole / 100 km"
+    ]
+   ],
+   "ordre": 4
+  },
+  {
+   "cat": "locotracteur",
+   "des": "Y 7217",
+   "cons": "Billard, Decauville",
+   "an": "après 1960",
+   "serie": "y7217",
+   "ordre": 5
+  },
+  {
+   "cat": "locotracteur",
+   "des": "Y 7294",
+   "cons": "Billard, Decauville",
+   "an": "après 1960",
+   "serie": "y7217",
+   "ordre": 6
+  },
+  {
+   "cat": "locotracteur",
+   "des": "Y 7303",
+   "cons": "Decauville",
+   "an": "1962",
+   "serie": "y7217",
+   "notes": "À vérifier : décrit aussi comme Decauville 1962, hydromécanique, 220 ch.",
+   "ordre": 7
+  },
+  {
+   "cat": "locotracteur",
+   "des": "Y 7771",
+   "cons": "Decauville, Dietrich, Moyse",
+   "an": "1963-1972",
+   "fiche": [
+    [
+     "Constructeur",
+     "Decauville, Dietrich, Moyse"
+    ],
+    [
+     "Année de fabrication",
+     "1963 à 1972"
+    ],
+    [
+     "Longueur",
+     "8,94 m"
+    ],
+    [
+     "Hauteur",
+     "3,87 m"
+    ],
+    [
+     "Masse",
+     "32 t"
+    ],
+    [
+     "Transmission",
+     "Hydromécanique"
+    ],
+    [
+     "Moteur",
+     "Poyaud 6 cylindres"
+    ],
+    [
+     "Puissance",
+     "204 ch"
+    ],
+    [
+     "Vitesse max.",
+     "64 km/h"
+    ]
+   ],
+   "ordre": 8
+  },
+  {
+   "cat": "manoeuvre",
+   "des": "Locotracteur BDR",
+   "cons": "Baudet-Donon-Roussel",
+   "an": "1955",
+   "fiche": [
+    [
+     "Constructeur",
+     "Baudet-Donon-Roussel"
+    ],
+    [
+     "Année de fabrication",
+     "1955 (n° 560 dans la série)"
+    ],
+    [
+     "Longueur",
+     "5,44 m"
+    ],
+    [
+     "Largeur",
+     "2,88 m"
+    ],
+    [
+     "Hauteur",
+     "2,77 m"
+    ],
+    [
+     "Masse à vide",
+     "13 t"
+    ],
+    [
+     "Transmission",
+     "Mécanique"
+    ],
+    [
+     "Puissance",
+     "90 ch, moteur Panhard"
+    ],
+    [
+     "Vitesse max.",
+     "17/20 km/h"
+    ]
+   ],
+   "ordre": 9
+  },
+  {
+   "cat": "manoeuvre",
+   "des": "Locotracteur Moyse",
+   "cons": "Moyse",
+   "an": "1941",
+   "fiche": [
+    [
+     "Constructeur",
+     "Moyse"
+    ],
+    [
+     "Année de fabrication",
+     "1941"
+    ],
+    [
+     "Longueur",
+     "6,80 m"
+    ],
+    [
+     "Hauteur",
+     "3,30 m"
+    ],
+    [
+     "Masse à vide",
+     "30 t"
+    ],
+    [
+     "Moteur",
+     "6 cylindres Berliet"
+    ],
+    [
+     "Puissance",
+     "120 ch"
+    ],
+    [
+     "Vitesse max.",
+     "20 km/h"
+    ]
+   ],
+   "ordre": 10
+  },
+  {
+   "cat": "autorail",
+   "des": "X 3800",
+   "sur": "Picasso",
+   "cons": "Renault",
+   "an": "1952",
+   "fiche": [
+    [
+     "Constructeur",
+     "Renault"
+    ],
+    [
+     "Année de construction",
+     "1952"
+    ],
+    [
+     "Longueur",
+     "21,90 m"
+    ],
+    [
+     "Hauteur",
+     "4,00 m"
+    ],
+    [
+     "Masse à vide",
+     "31,5 t"
+    ],
+    [
+     "Nombre de places",
+     "61"
+    ],
+    [
+     "Puissance",
+     "300 ch"
+    ],
+    [
+     "Vitesse max.",
+     "120 km/h"
+    ]
+   ],
+   "ordre": 11
+  },
+  {
+   "cat": "autorail",
+   "des": "X 2139",
+   "cons": "ANF",
+   "an": "1980",
+   "fiche": [
+    [
+     "Constructeur",
+     "ANF (Ateliers du Nord de la France)"
+    ],
+    [
+     "Année de construction",
+     "1980"
+    ],
+    [
+     "Longueur",
+     "22,40 m"
+    ],
+    [
+     "Hauteur",
+     "3,81 m"
+    ],
+    [
+     "Masse à vide",
+     "43,7 t"
+    ],
+    [
+     "Nombre de places",
+     "65"
+    ],
+    [
+     "Puissance",
+     "600 ch"
+    ],
+    [
+     "Vitesse max.",
+     "140 km/h"
+    ]
+   ],
+   "ordre": 12
+  },
+  {
+   "cat": "draisine",
+   "des": "Draisine DU 65",
+   "cons": "CIMT Lorraine",
+   "an": "1965-1972",
+   "fiche": [
+    [
+     "Constructeur",
+     "CIMT Lorraine"
+    ],
+    [
+     "Année de construction",
+     "1965 à 1972"
+    ],
+    [
+     "Moteur",
+     "Unic ou Renault"
+    ],
+    [
+     "Longueur",
+     "8,33 m"
+    ],
+    [
+     "Hauteur",
+     "2,96 m"
+    ],
+    [
+     "Poids en charge",
+     "11,2 t"
+    ],
+    [
+     "Puissance",
+     "102 à 115 ch selon modèle"
+    ],
+    [
+     "Capacité",
+     "18 personnes"
+    ],
+    [
+     "Vitesse max.",
+     "80 km/h"
+    ]
+   ],
+   "ordre": 13
+  },
+  {
+   "cat": "voiture",
+   "des": "Voiture-restaurant WR 2750",
+   "cons": "Officine Meccaniche Reggio Emilia",
+   "an": "1926",
+   "fiche": [
+    [
+     "Compagnie",
+     "CIWL"
+    ],
+    [
+     "Constructeur",
+     "Officine Meccaniche Reggio Emilia (Italie)"
+    ],
+    [
+     "Année de construction",
+     "1926"
+    ],
+    [
+     "Longueur",
+     "23,45 m"
+    ],
+    [
+     "Masse à vide",
+     "55 t"
+    ],
+    [
+     "Nombre de places",
+     "42 (7 baies)"
+    ],
+    [
+     "Vitesse max.",
+     "140 km/h"
+    ]
+   ],
+   "ordre": 14
+  },
+  {
+   "cat": "voiture",
+   "des": "Salon-Pullman WPsc 4150",
+   "cons": "Entreprise Industrielle de Charentes",
+   "an": "1929",
+   "fiche": [
+    [
+     "Compagnie",
+     "CIWL"
+    ],
+    [
+     "Constructeur",
+     "Entreprise Industrielle de Charentes, Aytré"
+    ],
+    [
+     "Année de construction",
+     "1929"
+    ],
+    [
+     "Longueur",
+     "23,45 m"
+    ],
+    [
+     "Masse à vide",
+     "47 t"
+    ],
+    [
+     "Nombre de places",
+     "28 (7 baies)"
+    ],
+    [
+     "Vitesse max.",
+     "160 km/h (Sud Express)"
+    ]
+   ],
+   "ordre": 15
+  },
+  {
+   "cat": "voiture",
+   "des": "Fourgon B3Dt",
+   "cons": "Ouest, État puis SNCF",
+   "an": "1902-1927",
+   "notes": "Numéro à compléter.",
+   "fiche": [
+    [
+     "Origine",
+     "Ex A6t Ouest"
+    ],
+    [
+     "Réseaux",
+     "Ouest, État puis SNCF"
+    ],
+    [
+     "Années de fabrication",
+     "1902 à 1927"
+    ],
+    [
+     "Longueur",
+     "14,70 m"
+    ],
+    [
+     "Entraxe essieux",
+     "8,50 m"
+    ],
+    [
+     "Masse à vide",
+     "16 t"
+    ],
+    [
+     "Compartiments",
+     "4"
+    ],
+    [
+     "Vitesse max.",
+     "120 km/h"
+    ]
+   ],
+   "ordre": 16
+  },
+  {
+   "cat": "voiture",
+   "des": "Ambulant postal OCEM",
+   "cons": "OCEM",
+   "an": "1928-1937",
+   "fiche": [
+    [
+     "Constructeur",
+     "OCEM"
+    ],
+    [
+     "Numéro",
+     "50 8700 77 191 (PAZ)"
+    ],
+    [
+     "Années de fabrication",
+     "1928 à 1937"
+    ],
+    [
+     "Longueur",
+     "21,57 m"
+    ],
+    [
+     "Hauteur",
+     "4,07 m"
+    ],
+    [
+     "Masse à vide",
+     "43 t"
+    ],
+    [
+     "Vitesse max.",
+     "120 km/h (160 km/h avec les nouveaux bogies)"
+    ],
+    [
+     "Gare d’attache",
+     "Région Est, Paris Ourcq, stationnement Évangile"
+    ]
+   ],
+   "ordre": 17
+  },
+  {
+   "cat": "voiture",
+   "des": "Boîte à tonnerre 1",
+   "cons": "ÖBB",
+   "an": "1903-1913",
+   "serie": "bt",
+   "notes": "Numéro réel à compléter.",
+   "ordre": 18
+  },
+  {
+   "cat": "voiture",
+   "des": "Boîte à tonnerre 2",
+   "cons": "ÖBB",
+   "an": "1903-1913",
+   "serie": "bt",
+   "notes": "Numéro réel à compléter.",
+   "ordre": 19
+  },
+  {
+   "cat": "voiture",
+   "des": "Boîte à tonnerre 3",
+   "cons": "ÖBB",
+   "an": "1903-1913",
+   "serie": "bt",
+   "notes": "Numéro réel à compléter.",
+   "ordre": 20
+  },
+  {
+   "cat": "voiture",
+   "des": "Boîte à tonnerre 4",
+   "cons": "ÖBB",
+   "an": "1903-1913",
+   "serie": "bt",
+   "notes": "Numéro réel à compléter.",
+   "ordre": 21
+  },
+  {
+   "cat": "voiture",
+   "des": "Boîte à tonnerre 5",
+   "cons": "ÖBB",
+   "an": "1903-1913",
+   "serie": "bt",
+   "notes": "Numéro réel à compléter.",
+   "ordre": 22
+  },
+  {
+   "cat": "voiture",
+   "des": "Boîte à tonnerre 6",
+   "cons": "ÖBB",
+   "an": "1903-1913",
+   "serie": "bt",
+   "notes": "Numéro réel à compléter.",
+   "ordre": 23
+  },
+  {
+   "cat": "voiture",
+   "des": "Boîte à tonnerre 7",
+   "cons": "ÖBB",
+   "an": "1903-1913",
+   "serie": "bt",
+   "notes": "Numéro réel à compléter.",
+   "ordre": 24
+  }
+ ]
+}

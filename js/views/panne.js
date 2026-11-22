@@ -1,0 +1,85 @@
+import { esc, icone, pastille, GRAVITES, STATUTS, EVENEMENTS, ROLES, ELEMENTS, quand, numPanne, nomEngin, nomPersonne, formatPk,
+  peutSignaler, peutReparer, feuille, toast, champPhotos, brancherPhotos } from '../ui.js';
+
+const ACTIONS = {
+  commentaire: { titre: 'Ajouter un commentaire', bouton: 'Ajouter', aide: 'Précisez, signalez une aggravation, ajoutez une photo…', requis: false },
+  prise_en_charge: { titre: 'Prendre en charge', bouton: 'Je m’en occupe', aide: 'Un mot pour les autres (facultatif)', requis: false },
+  intervention: { titre: 'Ajouter une intervention', bouton: 'Enregistrer', aide: 'Travaux réalisés, pièces utilisées ou à commander…', requis: true },
+  reparee: { titre: 'Marquer réparée', bouton: 'Confirmer la réparation', aide: 'Ce qui a été fait pour réparer', requis: true },
+  reouverte: { titre: 'Rouvrir la panne', bouton: 'Rouvrir', aide: 'Pourquoi le problème revient-il ?', requis: true },
+};
+
+export async function afficher(ctx) {
+  const { api, moi, params } = ctx;
+  const p = await api.panne(params[0]);
+  const g = GRAVITES[p.gravite];
+  const sujet = p.cible === 'materiel'
+    ? `<a href="#/engin/${p.engin?.id}">${esc(nomEngin(p.engin))}</a>`
+    : `Voie · ${esc(ELEMENTS[p.element])}${p.pk != null ? ' · ' + esc(formatPk(p.pk)) : ''}`;
+  const carte = p.lat != null
+    ? `<a class="btn neutre" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener">${icone('pin', 20)}Itinéraire jusqu'au point (± ${Math.round(p.precision_m || 0)} m)</a>` : '';
+  const photosDecl = p.photos.filter((x) => !x.evenement_id);
+  const photosDe = (evId) => p.photos.filter((x) => x.evenement_id === evId);
+  const grille = (l) => (l.length ? `<div class="photos">${l.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener"><img src="${esc(x.url)}" alt="Photo jointe" loading="lazy"></a>`).join('')}</div>` : '');
+
+  let actions = '';
+  if (peutReparer(moi)) {
+    actions = p.statut === 'reparee'
+      ? `<button class="btn neutre plein" data-action="reouverte">Rouvrir la panne</button>`
+      : `${p.statut === 'ouverte' ? '<button class="btn second plein" data-action="prise_en_charge">Prendre en charge</button>' : ''}
+         <div class="btns"><button class="btn second" data-action="intervention">Ajouter une intervention</button>
+         <button class="btn" data-action="reparee">Marquer réparée</button></div>`;
+    actions += `<button class="lien" data-action="commentaire" style="align-self:center">Ajouter un commentaire ou une photo</button>`;
+  } else if (peutSignaler(moi)) {
+    actions = `<button class="btn neutre plein" data-action="commentaire">Ajouter un commentaire ou une photo</button>
+      <p class="aide" style="text-align:center;margin:0">Profil conducteur : la réparation est réservée aux techniciens.</p>`;
+  } else {
+    actions = `<p class="aide" style="text-align:center;margin:0">Profil Bureau : consultation uniquement.</p>`;
+  }
+
+  const el = ctx.rendre(`
+  <div class="barre"><a class="retour" href="#/accueil" data-retour aria-label="Retour">${icone('retour')}</a>
+    <span class="sous">Panne n° ${esc(numPanne(p))}</span></div>
+  <div class="page">
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap">${pastille(g)}${pastille(STATUTS[p.statut])}</div>
+      <h1 style="margin:0;font-size:24px;font-weight:800;line-height:1.2">${esc(p.titre)}</h1>
+      <div class="aide" style="font-size:15px">${sujet}</div>
+    </div>
+    ${p.description || photosDecl.length ? `<div class="carte pad" style="display:flex;flex-direction:column;gap:10px">
+      ${p.description ? `<p style="margin:0;white-space:pre-line">${esc(p.description)}</p>` : ''}${grille(photosDecl)}</div>` : ''}
+    ${carte}
+    <div><h2 class="titre-section" style="margin-bottom:10px">Historique</h2>
+      ${p.evenements.map((ev) => `<div class="etape"><div class="rail"><i style="background:${EVENEMENTS[ev.type].couleur}"></i><span></span></div>
+        <div class="corps"><b>${EVENEMENTS[ev.type].label}</b>
+        <small>${esc(nomPersonne(ev.auteur))}${ev.auteur ? ' · ' + esc(ROLES[ev.auteur.role]?.label.split(' ·')[0] || '') : ''} · ${esc(quand(ev.created_at))}</small>
+        ${ev.texte && ev.type !== 'declaration' ? `<p>${esc(ev.texte)}</p>` : ''}${grille(photosDe(ev.id))}</div></div>`).join('')}
+    </div>
+  </div>
+  <div class="pied">${actions}</div>`);
+  if (!el) return;
+
+  el.querySelectorAll('[data-action]').forEach((b) => (b.onclick = () => ouvrirAction(ctx, p, b.dataset.action)));
+}
+
+function ouvrirAction(ctx, p, type) {
+  const a = ACTIONS[type];
+  const { el, fermer } = feuille(a.titre, `
+    <div class="champ"><label for="txt">${a.requis ? 'Détails' : 'Message'}${a.requis ? '' : ' <span class="aide">(facultatif)</span>'}</label>
+      <textarea class="saisie" id="txt" placeholder="${esc(a.aide)}"></textarea></div>
+    ${champPhotos('photos-action')}
+    <p class="erreur" id="err" role="alert"></p>
+    <div class="btns"><button class="btn neutre" id="annuler">Annuler</button><button class="btn" id="ok">${esc(a.bouton)}</button></div>`);
+  const photos = brancherPhotos(el.querySelector('[data-photos]'));
+  el.querySelector('#annuler').onclick = fermer;
+  el.querySelector('#ok').onclick = async (e) => {
+    const texte = el.querySelector('#txt').value.trim();
+    if (a.requis && !texte) { el.querySelector('#err').textContent = 'Merci de préciser en quelques mots.'; return; }
+    if (type === 'commentaire' && !texte && !photos().length) { el.querySelector('#err').textContent = 'Écrivez un message ou ajoutez une photo.'; return; }
+    e.target.disabled = true;
+    try {
+      await ctx.api.ajouterEvenement(p.id, type, texte, photos());
+      fermer(); toast('Enregistré'); ctx.aller('panne/' + p.id);
+    } catch (x) { el.querySelector('#err').textContent = x.message; e.target.disabled = false; }
+  };
+}
