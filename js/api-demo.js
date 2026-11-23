@@ -101,7 +101,7 @@ export function creerApi() {
     async majNotifications(prefs) { moi().notifications = prefs; sauver(); },
     async testerNotification() {
       const reg = await navigator.serviceWorker?.getRegistration();
-      if (reg) await reg.showNotification('CFV Atelier', { body: 'Les notifications fonctionnent sur ce téléphone (démonstration).', icon: 'img/icone-192.png' });
+      if (reg) await reg.showNotification('Notification d’essai ✓', { body: 'Les notifications fonctionnent sur ce téléphone (démonstration).', icon: 'img/icone-192.png' });
       return { envoyes: reg ? 1 : 0 };
     },
     async changerPhoto(fichier) { moi().photo_url = await lireFichier(await photoCarree(fichier, 200)); moi().photo = 'demo'; sauver(); },

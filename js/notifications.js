@@ -57,3 +57,36 @@ export async function desactiver(api) {
 export async function oublierCeTelephone(api) {
   try { await desactiver(api); } catch { /* sans réseau : l'abonnement sera remplacé par le prochain membre */ }
 }
+
+// ───── Proposer d'activer les notifications (première connexion, puis rappel tous les 5 jours) ─────
+const RAPPEL_JOURS = 5;
+let dejaPropose = false;   // une seule fois par ouverture de l'appli
+const cleRappel = (id) => 'cfv-notif-plus-tard:' + id;
+export const concerne = (moi) => moi.est_admin || moi.referent_voie || moi.role !== 'bureau';
+
+// ui : { feuille, toast } (passés par l'écran pour éviter une dépendance circulaire)
+export async function proposer(api, moi, { feuille, toast }) {
+  if (dejaPropose || !moi?.actif || !concerne(moi) || !navigator.onLine) return;
+  dejaPropose = true;
+  const e = await etat();
+  if (e !== 'inactif' && e !== 'installer') return;   // déjà activées, refusées ou impossibles : on ne relance pas
+  let plusTard = 0;
+  try { plusTard = Number(localStorage.getItem(cleRappel(moi.id))) || 0; } catch { /* rien */ }
+  if (plusTard && Date.now() - plusTard < RAPPEL_JOURS * 86400e3) return;
+  const reporter = () => { try { localStorage.setItem(cleRappel(moi.id), String(Date.now())); } catch { /* rien */ } };
+  const installer = e === 'installer';
+  const { el, fermer } = feuille('Être prévenu sur ce téléphone', `
+    <p style="margin:0">Recevez une notification pour les pannes qui vous concernent, et quand vos propres signalements sont pris en charge ou réparés.</p>
+    ${installer ? `<p class="bandeau" style="margin:0">Sur iPhone, il faut d'abord <b>ajouter l'appli à l'écran d'accueil</b> : dans Safari, <b>Partager → Sur l'écran d'accueil</b>, puis ouvrez l'appli depuis cette icône (iOS 16.4 ou plus).</p>` : ''}
+    <p class="erreur" id="err" role="alert"></p>
+    <div class="btns"><button class="btn neutre" id="plus-tard">Plus tard</button>
+      ${installer ? '<button class="btn" id="compris">J’ai compris</button>' : '<button class="btn" id="oui">Activer</button>'}</div>
+    <p class="aide" style="margin:0">Modifiable à tout moment dans Profil → Notifications.</p>`);
+  el.querySelector('#plus-tard').onclick = () => { reporter(); fermer(); };
+  el.querySelector('#compris')?.addEventListener('click', () => { reporter(); fermer(); });
+  el.querySelector('#oui')?.addEventListener('click', async (ev) => {
+    ev.target.disabled = true;
+    try { await activer(api); fermer(); toast('Notifications activées'); }
+    catch (x) { el.querySelector('#err').textContent = x.message; ev.target.disabled = false; reporter(); }
+  });
+}

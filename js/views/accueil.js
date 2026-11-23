@@ -1,4 +1,5 @@
-import { esc, icone, pastille, GRAVITES, STATUTS, ROLES, quand, sujetPanne, nomEngin, peutSignaler, peutInspecter, toast } from '../ui.js';
+import { esc, icone, pastille, GRAVITES, STATUTS, ROLES, quand, sujetPanne, nomEngin, peutSignaler, peutInspecter, toast, feuille } from '../ui.js';
+import { proposer as proposerNotifications } from '../notifications.js';
 import { scannerQR, idEnginDepuisQR } from '../scanner.js';
 import { tourneeEnCours } from './tournee.js';
 
@@ -63,6 +64,8 @@ export async function afficher(ctx) {
     if (!b.dataset.confirme) { b.dataset.confirme = '1'; b.textContent = 'Confirmer'; return; }
     await ctx.envois.retirer(b.dataset.retirer); ctx.aller('accueil');
   }));
+  // Première connexion (ou rappel) : proposer d'activer les notifications, après un court délai.
+  setTimeout(() => { if (el.isConnected && !document.querySelector('.voile, .scanner')) proposerNotifications(ctx.api, ctx.moi, { feuille, toast }).catch(() => {}); }, 1200);
   el.querySelector('#scanner').onclick = async () => {
     const texte = await scannerQR();
     if (!texte) return;

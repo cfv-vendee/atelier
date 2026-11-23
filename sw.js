@@ -1,5 +1,5 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
-const VERSION = 'atelier-v14';
+const VERSION = 'atelier-v15';
 const FICHIERS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/ui.js', 'js/api-demo.js', 'js/api-supabase.js', 'data/parc.js',
@@ -47,8 +47,12 @@ self.addEventListener('fetch', (e) => {
 self.addEventListener('push', (e) => {
   let m = {};
   try { m = e.data ? e.data.json() : {}; } catch { m = { corps: e.data?.text() }; }
-  e.waitUntil(self.registration.showNotification(m.titre || 'CFV Atelier', {
-    body: m.corps || '', icon: 'img/icone-192.png', badge: 'img/icone-192.png',
+  // L'iPhone écrit déjà « from CFV Atelier » sous le titre : un titre « CFV Atelier » ferait doublon,
+  // on remonte alors le texte en titre.
+  let titre = (m.titre || '').trim(), corps = m.corps || '';
+  if (!titre || titre === 'CFV Atelier') { titre = corps || 'CFV Atelier'; corps = ''; }
+  e.waitUntil(self.registration.showNotification(titre, {
+    body: corps, icon: 'img/icone-192.png', badge: 'img/icone-192.png',
     tag: m.tag, renotify: !!m.tag, data: { url: m.url || '#/accueil' },
   }));
 });
