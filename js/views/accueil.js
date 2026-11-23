@@ -43,6 +43,8 @@ export async function afficher(ctx) {
     const texte = await scannerQR();
     if (!texte) return;
     const id = idEnginDepuisQR(texte);
-    if (id) ctx.aller('engin/' + id); else toast("Ce QR code n'est pas une étiquette CFV Atelier.");
+    const engin = id ? await ctx.api.engin(id).catch(() => null) : null;
+    if (engin) ctx.aller('engin/' + id);
+    else toast(id ? "Cette étiquette ne correspond à aucun engin du CFV (ancienne étiquette ou étiquette de démonstration ?)." : "Ce QR code n'est pas une étiquette CFV Atelier.");
   };
 }

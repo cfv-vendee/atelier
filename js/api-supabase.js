@@ -2,6 +2,9 @@
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
 import { compresser } from './ui.js';
 
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const exigerId = (id, quoi) => { if (!UUID.test(id || '')) throw new Error(`${quoi} introuvable. Le lien ou le QR code ne correspond à rien dans l'appli du CFV.`); };
+
 const PANNE_COLS = '*, engin:engins(id, designation, surnom), auteur:profils!pannes_auteur_id_fkey(prenom, nom), technicien:profils!pannes_pris_par_fkey(prenom, nom)';
 
 export function creerApi({ url, cle }) {
@@ -40,7 +43,7 @@ export function creerApi({ url, cle }) {
     },
 
     async engins() { return verif(await sb.from('engins_etat').select('*').eq('actif', true).order('ordre')); },
-    async engin(id) { return verif(await sb.from('engins_etat').select('*').eq('id', id).single()); },
+    async engin(id) { exigerId(id, 'Engin'); return verif(await sb.from('engins_etat').select('*').eq('id', id).single()); },
 
     async pannes({ ouvertes, enginId, cible, auteurId, limite } = {}) {
       let q = sb.from('pannes').select(PANNE_COLS).order('created_at', { ascending: false });
@@ -52,6 +55,7 @@ export function creerApi({ url, cle }) {
       return verif(await q);
     },
     async panne(id) {
+      exigerId(id, 'Panne');
       const panne = verif(await sb.from('pannes').select(PANNE_COLS).eq('id', id).single());
       const evenements = verif(await sb.from('evenements').select('*, auteur:profils(prenom, nom, role)').eq('panne_id', id).order('created_at', { ascending: false }));
       const photos = verif(await sb.from('photos').select('*').eq('panne_id', id).order('created_at'));
@@ -93,5 +97,6 @@ function traduire(message) {
   if (/row-level security/i.test(message)) return "Vous n'avez pas les droits pour faire cela.";
   if (/Password should be/i.test(message)) return 'Le mot de passe doit contenir au moins 8 caractères.';
   if (/Failed to fetch|NetworkError/i.test(message)) return 'Pas de connexion internet.';
+  if (/invalid input syntax for type uuid|0 rows|multiple \(or no\) rows/i.test(message)) return "Élément introuvable : il a peut-être été supprimé, ou le lien n'est pas valable.";
   return message;
 }

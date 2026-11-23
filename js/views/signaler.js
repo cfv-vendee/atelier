@@ -75,7 +75,7 @@ export async function afficher(ctx) {
     if (!texte) return;
     const id = idEnginDepuisQR(texte);
     if (id && engins.some((e) => e.id === id)) { f.engin.value = id; toast('Engin reconnu : ' + nomEngin(engins.find((e) => e.id === id))); }
-    else toast("Ce QR code n'est pas une étiquette d'engin du CFV.");
+    else toast(id ? "Cette étiquette ne correspond à aucun engin du CFV (ancienne étiquette ou étiquette de démonstration ?)." : "Ce QR code n'est pas une étiquette CFV Atelier.");
   };
   const info = el.querySelector('#gps-info');
   el.querySelector('#gps').onclick = () => {
