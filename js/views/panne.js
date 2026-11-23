@@ -20,7 +20,7 @@ export async function afficher(ctx) {
     ? `<a class="btn neutre" href="https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}" target="_blank" rel="noopener">${icone('pin', 20)}Itinéraire jusqu'au point (± ${Math.round(p.precision_m || 0)} m)</a>` : '';
   const photosDecl = p.photos.filter((x) => !x.evenement_id);
   const photosDe = (evId) => p.photos.filter((x) => x.evenement_id === evId);
-  const grille = (l) => (l.length ? `<div class="photos">${l.map((x) => `<a href="${esc(x.url)}" target="_blank" rel="noopener"><img src="${esc(x.url)}" alt="Photo jointe" loading="lazy"></a>`).join('')}</div>` : '');
+  const grille = (l) => (l.length ? `<div class="photos">${l.map((x) => `<a href="${esc(x.url || '#')}" target="_blank" rel="noopener"><img src="${esc(x.url || '')}" alt="Photo jointe" loading="lazy"></a>`).join('')}</div>` : '');
 
   let actions = '';
   if (peutReparer(moi)) {
@@ -56,8 +56,20 @@ export async function afficher(ctx) {
         ${ev.texte && ev.type !== 'declaration' ? `<p>${esc(ev.texte)}</p>` : ''}${grille(photosDe(ev.id))}</div></div>`).join('')}
     </div>
   </div>
-  <div class="pied">${actions}</div>`);
+  <div class="pied">${actions}${moi.est_admin ? '<button class="lien" id="supprimer" style="align-self:center;color:var(--rouge)">Supprimer cette panne (administrateur)</button>' : ''}</div>`);
   if (!el) return;
+  // Photo non disponible (hors connexion, lien expiré) : on l'indique au lieu d'une image cassée.
+  el.querySelectorAll('.photos img').forEach((img) => {
+    const remplacer = () => { const a = img.closest('a'); a.outerHTML = '<span class="photo-absente">Photo visible avec le réseau</span>'; };
+    if (!img.getAttribute('src')) remplacer(); else img.addEventListener('error', remplacer, { once: true });
+  });
+  el.querySelector('#supprimer')?.addEventListener('click', (e) => {
+    const b = e.currentTarget;
+    if (!b.dataset.confirme) { b.dataset.confirme = '1'; b.textContent = 'Appuyez encore pour supprimer définitivement (photos comprises)'; return; }
+    b.disabled = true;
+    ctx.api.supprimerPanne(p.id).then(() => { toast('Panne supprimée'); ctx.aller('accueil', { remplacer: true }); })
+      .catch((x) => { toast(x.message); b.disabled = false; });
+  });
 
   el.querySelectorAll('[data-action]').forEach((b) => (b.onclick = () => ouvrirAction(ctx, p, b.dataset.action)));
 }

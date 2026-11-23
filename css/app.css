@@ -199,7 +199,18 @@ textarea.saisie { resize: vertical; min-height: 96px; }
 .scanner .btn { min-width: 200px; }
 
 /* Bandeau réseau */
-.reseau { position: sticky; top: 0; z-index: 30; background: #3F4650; color: #fff; font-size: 13px; font-weight: 600; line-height: 1.35;
+.reseau { position: relative; background: #3F4650; color: #fff; font-size: 13px; font-weight: 600; line-height: 1.35;
   padding: 8px 14px; padding-top: calc(8px + env(safe-area-inset-top)); }
-.reseau.attente { background: var(--orange-point); }
-.reseau + #vue .barre { top: 0; }
+.reseau.attente { background: var(--orange); }
+.photo-absente { aspect-ratio: 1; border-radius: 10px; background: var(--bord); color: var(--gris); font-size: 12px; font-weight: 600;
+  display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; }
+
+/* Ordinateur : affichage élargi (les formulaires restent à une largeur confortable) */
+@media (min-width: 1000px) {
+  #app, .nav-in { max-width: 980px; }
+  .entete, .page { padding-left: 28px; padding-right: 28px; }
+  #vue.sans-nav .page { max-width: 720px; margin: 0 auto; }
+  #liste.cartes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stats { gap: 14px; }
+  .planche { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}

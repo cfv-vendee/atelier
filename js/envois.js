@@ -28,11 +28,14 @@ const supprimer = (id) => operation('readwrite', (s) => s.delete(id));
 
 export const estErreurReseau = (e) => !navigator.onLine || !!e?.reseau || e instanceof TypeError;
 
-export function creerEnvois(api) {
+// moiId() : identifiant du membre connecté. Un envoi ne part que sous le nom de celui qui l'a fait.
+export function creerEnvois(api, moiId) {
   const ecouteurs = new Set();
   let enCours = false;
+  // Seulement les envois du membre connecté.
+  const mesEnvois = async () => (await lister()).filter((it) => it.auteur === moiId());
   const prevenir = async () => {
-    const l = await lister().catch(() => []);
+    const l = await mesEnvois().catch(() => []);
     ecouteurs.forEach((f) => f(l));
   };
 
@@ -40,7 +43,7 @@ export function creerEnvois(api) {
   async function preparer(brut) {
     const fichiers = [];
     for (const f of brut.fichiers || []) fichiers.push(new File([await compresser(f)], 'cfv-compressee.jpg', { type: 'image/jpeg' }));
-    return { id: crypto.randomUUID(), cree: new Date().toISOString(), ...brut, fichiers, photosIds: fichiers.map(() => crypto.randomUUID()) };
+    return { id: crypto.randomUUID(), cree: new Date().toISOString(), ...brut, auteur: moiId(), fichiers, photosIds: fichiers.map(() => crypto.randomUUID()) };
   }
   async function envoyer(item) {
     const options = { id: item.type === 'panne' ? item.panneId : item.evId, created_at: item.cree, photosIds: item.photosIds };
@@ -49,7 +52,7 @@ export function creerEnvois(api) {
   }
 
   return {
-    lister,
+    lister: mesEnvois,
     surChangement(f) { ecouteurs.add(f); return () => ecouteurs.delete(f); },
 
     // Envoie tout de suite si le réseau le permet, sinon garde dans le téléphone.
@@ -71,7 +74,7 @@ export function creerEnvois(api) {
       enCours = true;
       let envoyes = 0;
       try {
-        for (const item of await lister()) {
+        for (const item of await mesEnvois()) {
           try {
             await envoyer(item);
             await supprimer(item.id);

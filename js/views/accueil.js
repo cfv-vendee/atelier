@@ -13,6 +13,7 @@ export async function afficher(ctx) {
   const [ouvertes, recentes, engins, enAttente] = await Promise.all([api.pannes({ ouvertes: true }), api.pannes({ limite: 8 }), api.engins(), ctx.envois.lister().catch(() => [])]);
   const bloquantes = ouvertes.filter((p) => p.gravite === 'bloquante').length;
   const voie = ouvertes.filter((p) => p.cible === 'voie').length;
+  const materiel = ouvertes.length - voie;
   const immobilises = engins.filter((e) => e.etat === 'immobilise');
   const role = moi.est_admin ? `${ROLES[moi.role].label} · admin` : ROLES[moi.role].label;
 
@@ -37,9 +38,9 @@ export async function afficher(ctx) {
       <div style="padding:10px 14px"><button class="btn second plein" id="renvoyer">Envoyer maintenant</button></div>
     </div>` : ''}
     <div class="stats">
-      <a class="stat" href="#/materiel" style="text-decoration:none;color:inherit"><b>${ouvertes.length}</b><span>Pannes ouvertes</span></a>
-      <div class="stat ${bloquantes ? 'alerte' : ''}"><b>${bloquantes}</b><span>Bloquantes</span></div>
-      <a class="stat" href="#/voie" style="text-decoration:none;color:inherit"><b>${voie}</b><span>Points voie à traiter</span></a>
+      <a class="stat" href="#/materiel" style="text-decoration:none;color:inherit"><b>${materiel}</b><span>Pannes matériel</span></a>
+      <a class="stat" href="#/voie" style="text-decoration:none;color:inherit"><b>${voie}</b><span>Problèmes voie</span></a>
+      <div class="stat ${bloquantes ? 'alerte' : ''}"><b>${bloquantes}</b><span>Bloquants (matériel et voie)</span></div>
     </div>
     ${immobilises.length ? `<h2 class="titre-section">Matériel immobilisé</h2><div class="cartes">${immobilises.map((e) => {
       const p = ouvertes.find((x) => x.engin_id === e.id && x.gravite === 'bloquante');

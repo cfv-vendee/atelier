@@ -28,7 +28,20 @@ export async function afficher(ctx) {
     <button class="btn danger" id="sortir">Se déconnecter</button>
   </div>`);
   if (!el) return;
-  el.querySelector('#sortir').onclick = () => api.deconnexion();
+  el.querySelector('#sortir').onclick = async () => {
+    const enAttente = await ctx.envois.lister().catch(() => []);
+    if (!enAttente.length) return api.deconnexion();
+    const { el: f, fermer } = feuille('Envois en attente', `
+      <p style="margin:0">Vous avez <b>${enAttente.length} envoi${enAttente.length > 1 ? 's' : ''}</b> ${enAttente.length > 1 ? 'qui ne sont pas encore partis' : "qui n'est pas encore parti"} (pas de réseau).
+      Si vous vous déconnectez maintenant, ${enAttente.length > 1 ? 'ils seront perdus' : 'il sera perdu'}.</p>
+      <button class="btn plein" id="garder">Rester connecté</button>
+      <button class="btn danger plein" id="perdre">Se déconnecter et les supprimer</button>`);
+    f.querySelector('#garder').onclick = fermer;
+    f.querySelector('#perdre').onclick = async () => {
+      for (const it of enAttente) await ctx.envois.retirer(it.id);
+      fermer(); api.deconnexion();
+    };
+  };
   el.querySelector('#mdp')?.addEventListener('click', () => {
     const { el: f, fermer } = feuille('Changer mon mot de passe', `
       <div class="champ"><label for="m1">Nouveau mot de passe (8 caractères minimum)</label><input class="saisie" id="m1" type="password" autocomplete="new-password"></div>

@@ -62,6 +62,7 @@ export async function afficher(ctx) {
     el.querySelectorAll('[data-cible]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.cible === etat.cible));
     el.querySelector('[data-bloc=materiel]').hidden = etat.cible !== 'materiel';
     el.querySelector('[data-bloc=voie]').hidden = etat.cible !== 'voie';
+    el.querySelector('#titre').placeholder = etat.cible === 'voie' ? 'ex. Ballast affaissé' : 'ex. Fuite injecteur gauche';
     el.querySelectorAll('[data-element]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.element === etat.element));
     el.querySelectorAll('[data-gravite]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.gravite === etat.gravite));
   };
@@ -116,8 +117,8 @@ export async function afficher(ctx) {
     try {
       const panneId = crypto.randomUUID();
       const resultat = await ctx.envois.envoyerOuGarder({ type: 'panne', panneId, donnees, fichiers: photos(), resume: titre });
-      if (resultat === 'envoye') { toast('Signalement envoyé, merci !'); ctx.aller('panne/' + panneId); }
-      else { toast('Pas de réseau : signalement gardé dans le téléphone. Il partira tout seul au retour du réseau.'); ctx.aller('accueil'); }
+      if (resultat === 'envoye') { toast('Signalement envoyé, merci !'); ctx.aller('panne/' + panneId, { remplacer: true }); }
+      else { toast('Pas de réseau : signalement gardé dans le téléphone. Il partira tout seul au retour du réseau.'); ctx.aller('accueil', { remplacer: true }); }
     } catch (x) {
       err.textContent = x.message; bouton.disabled = false; bouton.textContent = 'Envoyer le signalement';
     }

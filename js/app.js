@@ -13,7 +13,7 @@ const api = CONFIG.supabaseUrl
   ? (await import('./api-supabase.js')).creerApi({ url: CONFIG.supabaseUrl, cle: CONFIG.supabaseCle })
   : (await import('./api-demo.js')).creerApi();
 
-const envois = creerEnvois(api);
+const envois = creerEnvois(api, () => moi?.id);
 const vueEl = document.getElementById('vue');
 const navEl = document.getElementById('nav');
 let moi = null;
@@ -32,8 +32,12 @@ const ROUTES = {
 };
 const ONGLETS = [['accueil', 'Accueil'], ['materiel', 'Matériel'], ['voie', 'Voie'], ['profil', 'Profil']];
 
-export function aller(chemin) {
-  if (location.hash === '#/' + chemin) router(); else location.hash = '/' + chemin;
+// remplacer : l'écran actuel n'est pas gardé dans l'historique (après un envoi, « Retour » ne ramène pas au formulaire).
+export function aller(chemin, { remplacer = false } = {}) {
+  const cible = '#/' + chemin;
+  if (location.hash === cible) router();
+  else if (remplacer) location.replace(cible);
+  else location.hash = '/' + chemin;
 }
 
 function afficherNav(onglet) {
@@ -93,10 +97,10 @@ async function router() {
 
 api.surAuth((evt) => {
   if (evt === 'PASSWORD_RECOVERY') lienAuth = 'recovery';
-  if (evt === 'SIGNED_OUT') { moi = null; history.replaceState(null, '', location.pathname + '#/accueil'); }
+  if (evt === 'SIGNED_OUT') { moi = null; nbEnAttente = 0; majBandeau(); history.replaceState(null, '', location.pathname + '#/accueil'); }
   if (['INITIAL_SESSION', 'SIGNED_IN', 'SIGNED_OUT', 'PASSWORD_RECOVERY'].includes(evt)) {
     if (evt === 'INITIAL_SESSION' && !/access_token=|type=/.test(location.hash)) return;
-    if (evt === 'SIGNED_IN') moi = null;
+    if (evt === 'SIGNED_IN') { moi = null; setTimeout(() => envois.lister().then((l) => { nbEnAttente = l.length; majBandeau(); synchroniser(); }).catch(() => {}), 1500); }
     // Nettoie l'adresse après un lien e-mail, puis affiche le bon écran.
     if (/access_token=|type=/.test(location.hash)) history.replaceState(null, '', location.pathname + '#/accueil');
     setTimeout(router, 0);
@@ -134,7 +138,7 @@ window.addEventListener('online', () => { majBandeau(); synchroniser(); });
 window.addEventListener('offline', majBandeau);
 document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') synchroniser(); });
 setInterval(synchroniser, 60000);
-envois.lister().then((l) => { nbEnAttente = l.length; majBandeau(); setTimeout(synchroniser, 1500); }).catch(() => {});
+setTimeout(() => envois.lister().then((l) => { nbEnAttente = l.length; majBandeau(); synchroniser(); }).catch(() => {}), 1500);
 
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});

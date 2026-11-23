@@ -8,6 +8,7 @@ const RESEAU = /Failed to fetch|Load failed|NetworkError|network ?error|fetch fa
 const exigerId = (id, quoi) => { if (!UUID.test(id || '')) throw new Error(`${quoi} introuvable. Le lien ou le QR code ne correspond à rien dans l'appli du CFV.`); };
 const PANNE_COLS = '*, engin:engins(id, designation, surnom), auteur:profils!pannes_auteur_id_fkey(prenom, nom), technicien:profils!pannes_pris_par_fkey(prenom, nom)';
 const PREFIXE_CACHE = 'cfv-cache:';
+const PROFIL_COLS = 'id, prenom, nom, role, est_admin, actif, created_at';
 
 function erreur(message, code) {
   const e = new Error(traduire(message));
@@ -90,7 +91,11 @@ export function creerApi({ url, cle }) {
     async moi() {
       const session = await this.session();
       if (!session) return null;
-      return avecCache('moi', async () => verif(await sb.from('profils').select('*').eq('id', session.user.id).single()));
+      return avecCache('moi', async () => {
+        const p = verif(await sb.from('profils').select(PROFIL_COLS).eq('id', session.user.id).single());
+        const [c] = verif(await sb.rpc('mes_coordonnees')) || [];
+        return { ...p, email: c?.email || session.user.email, telephone: c?.telephone || null };
+      });
     },
     async majMoi(champs) { verif(await sb.from('profils').update(champs).eq('id', await monId())); },
 
@@ -141,8 +146,23 @@ export function creerApi({ url, cle }) {
       if (fichiers.length) await envoyerPhotos(panneId, evId, fichiers, uid, photosIds);
     },
 
-    async membres() { return avecCache('membres', async () => verif(await sb.from('profils').select('*').order('actif', { ascending: false }).order('nom'))); },
+    async membres() {
+      return avecCache('membres', async () => {
+        const liste = verif(await sb.from('profils').select(PROFIL_COLS).order('actif', { ascending: false }).order('nom'));
+        const coords = verif(await sb.rpc('coordonnees_membres')) || [];   // vide si non administrateur
+        return liste.map((m) => ({ ...m, ...(coords.find((c) => c.id === m.id) || {}) }));
+      });
+    },
     async majMembre(id, champs) { verif(await sb.from('profils').update(champs).eq('id', id)); },
+    async majEngin(id, champs) { exigerId(id, 'Engin'); verif(await sb.from('engins').update(champs).eq('id', id)); },
+    async ajouterEngin(champs) { return verif(await sb.from('engins').insert(champs).select('id').single()).id; },
+    async supprimerPanne(id) {
+      exigerId(id, 'Panne');
+      const chemins = (verif(await sb.from('photos').select('chemin').eq('panne_id', id)) || []).map((p) => p.chemin);
+      if (chemins.length) verif(await sb.storage.from('photos').remove(chemins));
+      verif(await sb.from('pannes').delete().eq('id', id));
+      cache.vider();
+    },
     async gererCompte(corps) {
       const { data, error } = await sb.functions.invoke('invite-membre', { body: { ...corps, redirectTo: location.origin + location.pathname } });
       if (error) {

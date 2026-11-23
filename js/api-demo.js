@@ -141,7 +141,26 @@ export function creerApi() {
     },
 
     async membres() { return d.membres.map((m) => ({ ...m })); },
-    async majMembre(id, champs) { exiger(moi()?.est_admin); Object.assign(d.membres.find((m) => m.id === id), champs); sauver(); },
+    async majMembre(id, champs) {
+      exiger(moi()?.est_admin);
+      const m = d.membres.find((x) => x.id === id);
+      if (m.est_admin && champs.est_admin === false && !d.membres.some((x) => x.id !== id && x.est_admin && x.actif)) throw new Error('Il doit rester au moins un administrateur actif.');
+      Object.assign(m, champs); sauver();
+    },
+    async majEngin(id, champs) { exiger(moi()?.est_admin); Object.assign(d.engins.find((e) => e.id === id), champs); sauver(); },
+    async ajouterEngin(champs) {
+      exiger(moi()?.est_admin);
+      const id = uid();
+      d.engins.push({ id, serie_id: null, fiche: [], notes: null, photo: null, actif: true, ordre: Math.max(...d.engins.map((e) => e.ordre)) + 1, surnom: null, constructeur: null, annee: null, ...champs });
+      sauver(); return id;
+    },
+    async supprimerPanne(id) {
+      exiger(moi()?.est_admin);
+      d.pannes = d.pannes.filter((p) => p.id !== id);
+      d.evenements = d.evenements.filter((e) => e.panne_id !== id);
+      d.photos = d.photos.filter((p) => p.panne_id !== id);
+      sauver();
+    },
     async gererCompte(corps) {
       exiger(moi()?.est_admin);
       if (corps.action === 'inviter') {
