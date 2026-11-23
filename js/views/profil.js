@@ -1,5 +1,6 @@
 import { esc, icone, ROLES, feuille, toast, avatar } from '../ui.js';
 import { lignePanne } from './accueil.js';
+import { recadrer } from '../recadrage.js';
 
 export async function afficher(ctx) {
   const { api, moi } = ctx;
@@ -59,6 +60,7 @@ export async function afficher(ctx) {
         <div class="actions">
           <label class="btn second" for="photo" style="cursor:pointer">${icone('photo', 20)}${moi.photo_url ? 'Changer la photo' : 'Ajouter une photo'}</label>
           <input id="photo" class="sr" type="file" accept="image/*">
+          <button type="button" class="btn neutre" id="recadrer" hidden>Recadrer</button>
           ${moi.photo_url ? '<button type="button" class="btn neutre" id="sans-photo">Retirer la photo</button>' : ''}
         </div></div>
       <div class="champ"><label for="p">Prénom</label><input class="saisie" id="p" value="${esc(moi.prenom)}" autocomplete="given-name"></div>
@@ -67,14 +69,25 @@ export async function afficher(ctx) {
       <p class="erreur" id="err" role="alert"></p>
       <div class="btns"><button class="btn neutre" id="annuler">Annuler</button><button class="btn" id="ok">Enregistrer</button></div>`);
     f.querySelector('#annuler').onclick = fermer;
-    let photo = null, retirer = false;
+    let photo = null, original = null, retirer = false;
     const apercu = f.querySelector('#apercu-photo');
+    // Chaque photo choisie passe par l'écran de recadrage (déplacer, zoomer dans le rond).
+    const recadrerPhoto = async () => {
+      const carre = await recadrer(original);
+      if (!carre) return;
+      photo = new File([carre], 'cfv-profil.jpg', { type: 'image/jpeg' }); retirer = false;
+      apercu.innerHTML = avatar({ ...moi, photo_url: URL.createObjectURL(photo) }, 72);
+      f.querySelector('#recadrer').hidden = false;
+      const sans = f.querySelector('#sans-photo'); if (sans) sans.hidden = false;
+    };
     f.querySelector('#photo').addEventListener('change', (e) => {
-      photo = e.target.files[0] || null; retirer = false;
-      if (photo) apercu.innerHTML = avatar({ ...moi, photo_url: URL.createObjectURL(photo) }, 72);
+      const choisi = e.target.files[0]; e.target.value = '';
+      if (choisi) { original = choisi; recadrerPhoto(); }
     });
+    f.querySelector('#recadrer').addEventListener('click', recadrerPhoto);
     f.querySelector('#sans-photo')?.addEventListener('click', (e) => {
-      photo = null; retirer = true; apercu.innerHTML = avatar({ ...moi, photo_url: null }, 72); e.currentTarget.hidden = true;
+      photo = null; original = null; retirer = true; apercu.innerHTML = avatar({ ...moi, photo_url: null }, 72);
+      e.currentTarget.hidden = true; f.querySelector('#recadrer').hidden = true;
     });
     f.querySelector('#ok').onclick = async (ev) => {
       const prenom = f.querySelector('#p').value.trim(), nom = f.querySelector('#n').value.trim();
