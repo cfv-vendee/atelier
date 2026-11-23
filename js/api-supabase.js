@@ -1,14 +1,14 @@
 // Accès aux données réelles (Supabase). Les droits sont vérifiés côté serveur (RLS).
 // Hors connexion : les dernières données consultées sont gardées dans le téléphone.
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { compresser } from './ui.js';
+import { compresser, photoCarree } from './ui.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const RESEAU = /Failed to fetch|Load failed|NetworkError|network ?error|fetch failed|abort|timed? ?out|timeout/i;
 const exigerId = (id, quoi) => { if (!UUID.test(id || '')) throw new Error(`${quoi} introuvable. Le lien ou le QR code ne correspond à rien dans l'appli du CFV.`); };
 const PANNE_COLS = '*, engin:engins(id, designation, surnom), auteur:profils!pannes_auteur_id_fkey(prenom, nom), technicien:profils!pannes_pris_par_fkey(prenom, nom)';
 const PREFIXE_CACHE = 'cfv-cache:';
-const PROFIL_COLS = 'id, prenom, nom, role, est_admin, referent_voie, actif, created_at';
+const PROFIL_COLS = 'id, prenom, nom, role, est_admin, referent_voie, actif, photo, created_at';
 
 function erreur(message, code) {
   const e = new Error(traduire(message));
@@ -69,6 +69,16 @@ export function creerApi({ url, cle }) {
     }
   }
 
+  // Liens (valables 7 jours) vers les photos de profil.
+  async function avecAvatars(liste) {
+    const avec = liste.filter((m) => m.photo);
+    if (avec.length) {
+      const { data } = await sb.storage.from('avatars').createSignedUrls(avec.map((m) => m.photo), 7 * 86400);
+      avec.forEach((m, i) => { m.photo_url = data?.[i]?.signedUrl || null; });
+    }
+    return liste;
+  }
+
   return {
     demo: false,
     async session() {
@@ -94,10 +104,29 @@ export function creerApi({ url, cle }) {
       return avecCache('moi', async () => {
         const p = verif(await sb.from('profils').select(PROFIL_COLS).eq('id', session.user.id).single());
         const [c] = verif(await sb.rpc('mes_coordonnees')) || [];
-        return { ...p, email: c?.email || session.user.email, telephone: c?.telephone || null };
+        const [moi] = await avecAvatars([{ ...p, email: c?.email || session.user.email, telephone: c?.telephone || null }]);
+        return moi;
       });
     },
     async majMoi(champs) { verif(await sb.from('profils').update(champs).eq('id', await monId())); },
+    // Photo de profil : nécessite le réseau (pas mise en attente).
+    async changerPhoto(fichier) {
+      if (!navigator.onLine) throw erreur('Pas de connexion internet : la photo pourra être changée au retour du réseau.');
+      const uid = await monId();
+      const avant = verif(await sb.from('profils').select('photo').eq('id', uid).single()).photo;
+      const chemin = `${uid}/${crypto.randomUUID()}.jpg`;
+      const up = await sb.storage.from('avatars').upload(chemin, await photoCarree(fichier), { contentType: 'image/jpeg' });
+      if (up.error) throw erreur(up.error.message);
+      verif(await sb.from('profils').update({ photo: chemin }).eq('id', uid));
+      if (avant) await sb.storage.from('avatars').remove([avant]);
+    },
+    // Sans id : sa propre photo. Avec id : un administrateur retire la photo d'un membre.
+    async retirerPhoto(id) {
+      const cible = id || await monId();
+      const avant = verif(await sb.from('profils').select('photo').eq('id', cible).single()).photo;
+      verif(await sb.from('profils').update({ photo: null }).eq('id', cible));
+      if (avant) await sb.storage.from('avatars').remove([avant]);
+    },
 
     async engins() { return avecCache('engins', async () => verif(await sb.from('engins_etat').select('*').eq('actif', true).order('ordre'))); },
     async engin(id) {
@@ -211,7 +240,7 @@ export function creerApi({ url, cle }) {
       return avecCache('membres', async () => {
         const liste = verif(await sb.from('profils').select(PROFIL_COLS).order('actif', { ascending: false }).order('nom'));
         const coords = verif(await sb.rpc('coordonnees_membres')) || [];   // vide si non administrateur
-        return liste.map((m) => ({ ...m, ...(coords.find((c) => c.id === m.id) || {}) }));
+        return avecAvatars(liste.map((m) => ({ ...m, ...(coords.find((c) => c.id === m.id) || {}) })));
       });
     },
     async majMembre(id, champs) { verif(await sb.from('profils').update(champs).eq('id', id)); },

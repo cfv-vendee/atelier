@@ -123,6 +123,22 @@ export function feuille(titre, contenu) {
   return { el: voile.querySelector('.feuille'), fermer };
 }
 
+// Photo de profil ronde, avec les initiales dessous si l'image manque (sans réseau, lien expiré…).
+export function avatar(p, taille = 44) {
+  const ini = ((p?.prenom?.[0] || '') + (p?.nom?.[0] || '')).toUpperCase() || '?';
+  return `<span class="avatar" style="width:${taille}px;height:${taille}px;font-size:${Math.round(taille * 0.36)}px" aria-hidden="true">${esc(ini)}${p?.photo_url
+    ? `<img src="${esc(p.photo_url)}" alt="" onerror="this.remove()">` : ''}</span>`;
+}
+// Photo de profil : carré centré de 400 px, JPEG.
+export async function photoCarree(fichier, cote = 400) {
+  const bitmap = await createImageBitmap(fichier);
+  const c = Math.min(bitmap.width, bitmap.height);
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = Math.min(cote, c);
+  canvas.getContext('2d').drawImage(bitmap, (bitmap.width - c) / 2, (bitmap.height - c) / 2, c, c, 0, 0, canvas.width, canvas.height);
+  return new Promise((ok, ko) => canvas.toBlob((b) => (b ? ok(b) : ko(new Error('Photo illisible.'))), 'image/jpeg', 0.85));
+}
+
 // Réduit une photo (1600 px max, JPEG) avant envoi : plus rapide, surtout sur la voie.
 export async function compresser(fichier, max = 1600, qualite = 0.8) {
   try {

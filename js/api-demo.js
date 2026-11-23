@@ -1,6 +1,7 @@
 // Mode démonstration : mêmes fonctions que l'accès réel, données gardées dans ce navigateur.
 // Sert aux essais et à la présentation, tant que la base n'est pas branchée.
 import { PARC } from '../data/parc.js';
+import { photoCarree } from './ui.js';
 
 const CLE = 'cfv-atelier-demo-v2';
 const MEMBRES = [
@@ -93,6 +94,11 @@ export function creerApi() {
 
     async moi() { return moi() ? { ...moi() } : null; },
     async majMoi(champs) { Object.assign(moi(), { prenom: champs.prenom, nom: champs.nom, telephone: champs.telephone }); sauver(); },
+    async changerPhoto(fichier) { moi().photo_url = await lireFichier(await photoCarree(fichier, 200)); moi().photo = 'demo'; sauver(); },
+    async retirerPhoto(id) {
+      if (id && id !== moi().id) exiger(moi()?.est_admin);
+      Object.assign(d.membres.find((m) => m.id === (id || moi().id)), { photo: null, photo_url: null }); sauver();
+    },
 
     async engins() { await pause(); return d.engins.filter((e) => e.actif).sort((a, b) => a.ordre - b.ordre).map(etatEngin); },
     async engin(id) { const e = d.engins.find((x) => x.id === id); if (!e) throw new Error('Engin introuvable.'); return etatEngin(e); },

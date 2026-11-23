@@ -1,15 +1,14 @@
-import { esc, icone, ROLES, feuille, toast } from '../ui.js';
+import { esc, icone, ROLES, feuille, toast, avatar } from '../ui.js';
 import { lignePanne } from './accueil.js';
 
 export async function afficher(ctx) {
   const { api, moi } = ctx;
   const mesPannes = await api.pannes({ auteurId: moi.id, limite: 5 });
-  const initiales = ((moi.prenom?.[0] || '') + (moi.nom?.[0] || '')).toUpperCase() || '?';
   const el = ctx.rendre(`
   <div class="entete"><h1>Profil</h1></div>
   <div class="page" style="padding-top:8px">
     <div class="carte pad" style="display:flex;align-items:center;gap:14px">
-      <div style="width:56px;height:56px;border-radius:28px;background:var(--vert);color:#fff;font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center;flex:none">${esc(initiales)}</div>
+      ${avatar(moi, 64).replace('class="avatar"', 'class="avatar fort"')}
       <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
         <div style="font-size:18px;font-weight:800">${esc(moi.prenom)} ${esc(moi.nom)}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pastille ${ROLES[moi.role].cls}">${esc(ROLES[moi.role].label)}</span>
@@ -56,19 +55,37 @@ export async function afficher(ctx) {
   });
   el.querySelector('#modifier').onclick = () => {
     const { el: f, fermer } = feuille('Mes informations', `
+      <div class="photo-profil"><span id="apercu-photo">${avatar(moi, 72)}</span>
+        <div class="actions">
+          <label class="btn second" for="photo" style="cursor:pointer">${icone('photo', 20)}${moi.photo_url ? 'Changer la photo' : 'Ajouter une photo'}</label>
+          <input id="photo" class="sr" type="file" accept="image/*">
+          ${moi.photo_url ? '<button type="button" class="btn neutre" id="sans-photo">Retirer la photo</button>' : ''}
+        </div></div>
       <div class="champ"><label for="p">Prénom</label><input class="saisie" id="p" value="${esc(moi.prenom)}" autocomplete="given-name"></div>
       <div class="champ"><label for="n">Nom</label><input class="saisie" id="n" value="${esc(moi.nom)}" autocomplete="family-name"></div>
       <div class="champ"><label for="t">Téléphone <span class="aide">(facultatif)</span></label><input class="saisie" id="t" type="tel" value="${esc(moi.telephone || '')}" autocomplete="tel"></div>
       <p class="erreur" id="err" role="alert"></p>
       <div class="btns"><button class="btn neutre" id="annuler">Annuler</button><button class="btn" id="ok">Enregistrer</button></div>`);
     f.querySelector('#annuler').onclick = fermer;
-    f.querySelector('#ok').onclick = async () => {
+    let photo = null, retirer = false;
+    const apercu = f.querySelector('#apercu-photo');
+    f.querySelector('#photo').addEventListener('change', (e) => {
+      photo = e.target.files[0] || null; retirer = false;
+      if (photo) apercu.innerHTML = avatar({ ...moi, photo_url: URL.createObjectURL(photo) }, 72);
+    });
+    f.querySelector('#sans-photo')?.addEventListener('click', (e) => {
+      photo = null; retirer = true; apercu.innerHTML = avatar({ ...moi, photo_url: null }, 72); e.currentTarget.hidden = true;
+    });
+    f.querySelector('#ok').onclick = async (ev) => {
       const prenom = f.querySelector('#p').value.trim(), nom = f.querySelector('#n').value.trim();
       if (!prenom || !nom) { f.querySelector('#err').textContent = 'Le prénom et le nom sont nécessaires.'; return; }
+      ev.target.disabled = true;
       try {
+        if (photo) await api.changerPhoto(photo);
+        else if (retirer) await api.retirerPhoto();
         await api.majMoi({ prenom, nom, telephone: f.querySelector('#t').value.trim() || null });
         await ctx.rafraichirMoi(); fermer(); toast('Enregistré'); ctx.aller('profil');
-      } catch (x) { f.querySelector('#err').textContent = x.message; }
+      } catch (x) { f.querySelector('#err').textContent = x.message; ev.target.disabled = false; }
     };
   };
 }

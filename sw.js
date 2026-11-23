@@ -1,5 +1,5 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
-const VERSION = 'atelier-v9';
+const VERSION = 'atelier-v10';
 const FICHIERS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/ui.js', 'js/api-demo.js', 'js/api-supabase.js', 'data/parc.js',

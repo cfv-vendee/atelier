@@ -1,4 +1,4 @@
-import { esc, icone, ROLES, feuille, toast, quand } from '../ui.js';
+import { esc, icone, ROLES, feuille, toast, quand, avatar } from '../ui.js';
 import { voieConfiguree } from './releve.js';
 
 // Colonnes : Bureau, Conducteur, Cond. + tech., Technicien, Référent voie, Admin. « · » = selon le rôle du membre.
@@ -28,7 +28,7 @@ export async function afficher(ctx) {
     <h2 class="titre-section">Membres (${membres.filter((m) => m.actif).length} actifs)</h2>
     <div class="carte liste">${membres.map((m) => `
       <button class="ligne" data-id="${m.id}" style="width:100%;background:none;border:0;border-bottom:1px solid #EEF0F2;text-align:left;cursor:pointer;${m.actif ? '' : 'opacity:.6'}">
-        <span class="code green" style="border-radius:22px">${esc(((m.prenom?.[0] || '') + (m.nom?.[0] || '')).toUpperCase() || '?')}</span>
+        ${avatar(m, 44)}
         <span class="txt"><span class="t">${esc(m.prenom)} ${esc(m.nom)}${m.id === moi.id ? ' (vous)' : ''}</span>
           <span style="display:flex;gap:6px;flex-wrap:wrap">${m.actif ? `<span class="pastille ${ROLES[m.role].cls}">${esc(ROLES[m.role].label)}</span>` : '<span class="pastille grey">Accès retiré</span>'}
           ${m.referent_voie ? '<span class="pastille voie-ref">Réf. voie</span>' : ''}${m.est_admin ? '<span class="pastille admin">Admin</span>' : ''}</span></span>
@@ -59,7 +59,8 @@ function formulaire(ctx, m) {
       <div class="champ"><label for="n">Nom</label><input class="saisie" id="n" value="${esc(m?.nom || '')}"></div></div>
     ${nouveau ? `<div class="champ"><label for="e">Adresse e-mail</label><input class="saisie" id="e" type="email" autocomplete="off">
       <span class="aide">Le membre recevra un e-mail pour choisir son mot de passe.</span></div>`
-      : `<p class="aide" style="margin:0">${esc(m.email || '')}</p>`}
+      : `<p class="aide" style="margin:0">${esc(m.email || '')}</p>
+      ${m.photo_url ? `<div class="photo-profil">${avatar(m, 56)}<button type="button" class="btn neutre" id="sans-photo" style="flex:1">Retirer sa photo de profil</button></div>` : ''}`}
     <div class="champ"><label for="t">Téléphone <span class="aide">(facultatif)</span></label><input class="saisie" id="t" type="tel" value="${esc(m?.telephone || '')}"></div>
     <div class="champ"><label for="r">Rôle</label><select class="saisie" id="r">
       ${Object.entries(ROLES).map(([k, r]) => `<option value="${k}" ${(m?.role || 'conducteur') === k ? 'selected' : ''}>${esc(r.label)}</option>`).join('')}</select></div>
@@ -85,6 +86,10 @@ function formulaire(ctx, m) {
       fermer(); ctx.aller('admin');
     } catch (x) { err.textContent = x.message; ev.target.disabled = false; }
   };
+  el.querySelector('#sans-photo')?.addEventListener('click', async () => {
+    try { await ctx.api.retirerPhoto(m.id); fermer(); toast('Photo retirée'); ctx.aller('admin'); }
+    catch (x) { err.textContent = x.message; }
+  });
   el.querySelector('#acces')?.addEventListener('click', async () => {
     if (m.actif && !confirmerDansFeuille(el)) return;
     try { await ctx.api.gererCompte({ action: m.actif ? 'retirer' : 'retablir', id: m.id }); fermer(); toast(m.actif ? 'Accès retiré' : 'Accès rétabli'); ctx.aller('admin'); }
