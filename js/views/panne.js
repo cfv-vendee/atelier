@@ -45,6 +45,7 @@ export async function afficher(ctx) {
       <div style="display:flex;gap:8px;flex-wrap:wrap">${pastille(g)}${pastille(STATUTS[p.statut])}</div>
       <h1 style="margin:0;font-size:24px;font-weight:800;line-height:1.2">${esc(p.titre)}</h1>
       <div class="aide" style="font-size:15px">${sujet}</div>
+      ${p.tournee_id ? `<a href="#/tournee/${esc(p.tournee_id)}" style="font-size:14px;font-weight:600">Constaté pendant une tournée d'inspection →</a>` : ''}
     </div>
     ${p.description || photosDecl.length ? `<div class="carte pad" style="display:flex;flex-direction:column;gap:10px">
       ${p.description ? `<p style="margin:0;white-space:pre-line">${esc(p.description)}</p>` : ''}${grille(photosDecl)}</div>` : ''}

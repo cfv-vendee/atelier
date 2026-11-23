@@ -214,3 +214,28 @@ textarea.saisie { resize: vertical; min-height: 96px; }
   .stats { gap: 14px; }
   .planche { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+
+/* Tournée d'inspection */
+.regle { display: flex; flex-direction: column; gap: 6px; }
+.regle-voie { position: relative; height: 22px; border-radius: 6px; background: #E9EBEE; overflow: visible; }
+.regle-vu, .regle-nv { position: absolute; top: 0; bottom: 0; }
+.regle-vu { background: var(--ok); }
+.regle-nv { background: repeating-linear-gradient(45deg, #9AA1AB 0 4px, #D5D9DE 4px 8px); }
+.regle-defaut { position: absolute; top: 50%; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 7px; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.2); }
+.regle-pos { position: absolute; top: -6px; bottom: -6px; width: 3px; margin-left: -1.5px; background: var(--encre); border-radius: 2px; }
+.regle-bornes { display: flex; justify-content: space-between; font-size: 12px; color: var(--gris); font-weight: 600; }
+.legende { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: var(--gris); }
+.legende span { display: inline-flex; align-items: center; gap: 5px; }
+.legende i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; }
+.legende i.nv { background: repeating-linear-gradient(45deg, #9AA1AB 0 3px, #D5D9DE 3px 6px); }
+.pas { display: grid; grid-template-columns: 1fr 1fr 2fr 1fr 1fr; gap: 6px; align-items: stretch; }
+.pas .choix { font-size: 15px; font-weight: 700; padding: 0; }
+.pk-grand { display: flex; align-items: center; justify-content: center; border: 2px solid var(--vert); border-radius: 12px; background: #fff; }
+.pk-grand input { width: 100%; border: 0; outline: none; text-align: center; font-size: 24px; font-weight: 800; background: transparent; }
+.btns3 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.btns3 #nonvu { grid-column: 1 / -1; min-height: 46px; font-size: 15px; }
+@media print {
+  .compte-rendu .imprime-seul { display: flex !important; }
+  .compte-rendu .stat, .compte-rendu .carte { break-inside: avoid; }
+  .regle-vu, .regle-nv, .regle-defaut, .stat.alerte { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

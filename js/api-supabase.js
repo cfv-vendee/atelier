@@ -146,6 +146,24 @@ export function creerApi({ url, cle }) {
       if (fichiers.length) await envoyerPhotos(panneId, evId, fichiers, uid, photosIds);
     },
 
+    async demarrerTournee(donnees, { id } = {}) {
+      const uid = await monId();
+      const { error } = await sb.from('tournees').insert({ ...donnees, id, auteur_id: uid });
+      if (error && !dejaFait(error)) throw erreur(error.message, error.code);
+    },
+    async terminerTournee(id, champs) { verif(await sb.from('tournees').update(champs).eq('id', id)); },
+    async tournees({ limite = 20 } = {}) {
+      return avecCache('tournees:' + limite, async () => verif(await sb.from('tournees')
+        .select('*, auteur:profils(prenom, nom), pannes(count)').order('debut', { ascending: false }).limit(limite)));
+    },
+    async tournee(id) {
+      exigerId(id, 'Tournée');
+      return avecCache('tournee:' + id, async () => {
+        const t = verif(await sb.from('tournees').select('*, auteur:profils(prenom, nom)').eq('id', id).single());
+        const pannes = verif(await sb.from('pannes').select(PANNE_COLS).eq('tournee_id', id).order('pk'));
+        return { ...t, pannes };
+      });
+    },
     async membres() {
       return avecCache('membres', async () => {
         const liste = verif(await sb.from('profils').select(PROFIL_COLS).order('actif', { ascending: false }).order('nom'));

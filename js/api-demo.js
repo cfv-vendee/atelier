@@ -140,6 +140,28 @@ export function creerApi() {
       sauver();
     },
 
+    async demarrerTournee(donnees, { id } = {}) {
+      exiger(peutSignaler(moi()));
+      d.tournees ??= [];
+      if (d.tournees.some((t) => t.id === id)) return;
+      d.tournees.push({ id: id || uid(), auteur_id: moi().id, participants: null, fin: null, sections_vues: [], sections_non_vues: [], notes: [], statut: 'en_cours', ...donnees });
+      sauver();
+    },
+    async terminerTournee(id, champs) {
+      const t = (d.tournees || []).find((x) => x.id === id);
+      if (!t) throw new Error('Tournée introuvable.');
+      exiger(t.auteur_id === moi().id || moi().est_admin);
+      Object.assign(t, champs); sauver();
+    },
+    async tournees({ limite = 20 } = {}) {
+      return [...(d.tournees || [])].sort((a, b) => b.debut.localeCompare(a.debut)).slice(0, limite)
+        .map((t) => ({ ...t, auteur: personne(t.auteur_id), pannes: [{ count: d.pannes.filter((p) => p.tournee_id === t.id).length }] }));
+    },
+    async tournee(id) {
+      const t = (d.tournees || []).find((x) => x.id === id);
+      if (!t) throw new Error('Tournée introuvable.');
+      return { ...t, auteur: personne(t.auteur_id), pannes: d.pannes.filter((p) => p.tournee_id === id).map(enrichir) };
+    },
     async membres() { return d.membres.map((m) => ({ ...m })); },
     async majMembre(id, champs) {
       exiger(moi()?.est_admin);

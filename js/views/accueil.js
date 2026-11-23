@@ -1,5 +1,6 @@
 import { esc, icone, pastille, GRAVITES, STATUTS, ROLES, quand, sujetPanne, nomEngin, peutSignaler, toast } from '../ui.js';
 import { scannerQR, idEnginDepuisQR } from '../scanner.js';
+import { tourneeEnCours } from './tournee.js';
 
 export const lignePanne = (p) => `
   <a class="ligne" href="#/panne/${p.id}">
@@ -24,6 +25,7 @@ export async function afficher(ctx) {
       <div class="aide" style="font-size:14px">Bonjour ${esc(moi.prenom)} · ${esc(role)}</div></div>
   </div>
   <div class="page">
+    ${peutSignaler(moi) && tourneeEnCours(moi.id) ? `<a class="bandeau" href="#/tournee" style="text-decoration:none;font-weight:700">Tournée d'inspection en cours : appuyez pour la reprendre →</a>` : ''}
     ${peutSignaler(moi) ? `<a class="btn grand" href="#/signaler">${icone('plus')}Signaler un problème</a>` : ''}
     <button class="btn second plein" id="scanner">${icone('qr', 22)}Scanner le QR code d'un engin</button>
     ${enAttente.length ? `<h2 class="titre-section">En attente d'envoi (${enAttente.length})</h2>

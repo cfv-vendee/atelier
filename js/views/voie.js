@@ -1,19 +1,25 @@
 import { esc, icone, pastille, GRAVITES, STATUTS, ELEMENTS, formatPk, quand, peutSignaler } from '../ui.js';
+import { tourneeEnCours, ligneTournee } from './tournee.js';
 
 let voirReparees = false;
 
 export async function afficher(ctx) {
   const { api, moi } = ctx;
-  const toutes = await api.pannes({ cible: 'voie' });
+  const [toutes, tournees] = await Promise.all([api.pannes({ cible: 'voie' }), api.tournees({ limite: 10 }).catch(() => [])]);
+  const active = peutSignaler(moi) ? tourneeEnCours(moi.id) : null;
   const el = ctx.rendre(`
   <div class="entete"><h1>La voie</h1><div class="aide" style="font-size:14px">Mortagne-sur-Sèvre → Les Herbiers · 22 km</div></div>
   <div class="page" style="padding-top:8px">
-    ${peutSignaler(moi) ? `<a class="btn" href="#/signaler?cible=voie">${icone('plus', 20)}Signaler un problème sur la voie</a>` : ''}
+    ${active ? `<a class="btn grand" href="#/tournee" style="background:var(--orange)">${icone('voie')}Reprendre la tournée en cours</a>`
+      : peutSignaler(moi) ? `<a class="btn grand" href="#/tournee">${icone('voie')}Démarrer une tournée d'inspection</a>` : ''}
+    ${peutSignaler(moi) ? `<a class="btn second" href="#/signaler?cible=voie">${icone('plus', 20)}Signaler un problème ponctuel</a>` : ''}
     <div class="bandeau">Le plan interactif de la ligne arrive à l'étape suivante. En attendant, les problèmes sont classés par point kilométrique.</div>
     <div class="segments" role="group" aria-label="Affichage">
       <button type="button" data-r="0">À traiter</button><button type="button" data-r="1">Tout l'historique</button>
     </div>
     <div class="carte liste" id="liste"></div>
+    <h2 class="titre-section">Tournées d'inspection</h2>
+    <div class="carte liste">${tournees.map(ligneTournee).join('') || '<p class="vide">Aucune tournée pour le moment.</p>'}</div>
   </div>`);
   if (!el) return;
   const maj = () => {

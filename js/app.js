@@ -29,6 +29,7 @@ const ROUTES = {
   profil: { vue: () => import('./views/profil.js'), onglet: 'profil' },
   admin: { vue: () => import('./views/admin.js'), onglet: 'profil', admin: true },
   etiquettes: { vue: () => import('./views/etiquettes.js') },
+  tournee: { vue: () => import('./views/tournee.js') },
 };
 const ONGLETS = [['accueil', 'Accueil'], ['materiel', 'Matériel'], ['voie', 'Voie'], ['profil', 'Profil']];
 
