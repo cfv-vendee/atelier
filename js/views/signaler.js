@@ -1,4 +1,5 @@
 import { esc, icone, ELEMENTS, GRAVITES, CATEGORIES, nomEngin, toast, champPhotos, brancherPhotos, peutSignaler } from '../ui.js';
+import { scannerQR, idEnginDepuisQR } from '../scanner.js';
 
 export async function afficher(ctx) {
   const { api, moi, query } = ctx;
@@ -24,7 +25,8 @@ export async function afficher(ctx) {
       <select class="saisie" id="engin"><option value="">Choisir…</option>
         ${Object.entries(groupes).map(([g, l]) => `<optgroup label="${esc(g)}">${l.map((e) =>
           `<option value="${e.id}" ${e.id === enginInitial ? 'selected' : ''}>${esc(nomEngin(e))}</option>`).join('')}</optgroup>`).join('')}
-      </select></div>
+      </select>
+      <button type="button" class="btn second plein" id="scan-engin">${icone('qr', 20)}Scanner le QR code de l'engin</button></div>
 
     <div class="champ" data-bloc="voie"><span class="etiquette">2. Quel élément ?</span>
       <div class="grille3" role="group" aria-label="Élément de voie">
@@ -68,6 +70,13 @@ export async function afficher(ctx) {
   el.querySelectorAll('[data-gravite]').forEach((b) => (b.onclick = () => { etat.gravite = b.dataset.gravite; majAffichage(); }));
   majAffichage();
 
+  el.querySelector('#scan-engin').onclick = async () => {
+    const texte = await scannerQR();
+    if (!texte) return;
+    const id = idEnginDepuisQR(texte);
+    if (id && engins.some((e) => e.id === id)) { f.engin.value = id; toast('Engin reconnu : ' + nomEngin(engins.find((e) => e.id === id))); }
+    else toast("Ce QR code n'est pas une étiquette d'engin du CFV.");
+  };
   const info = el.querySelector('#gps-info');
   el.querySelector('#gps').onclick = () => {
     if (!navigator.geolocation) { info.textContent = 'Ce téléphone ne permet pas la localisation.'; return; }

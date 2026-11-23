@@ -15,6 +15,7 @@ export async function afficher(ctx) {
     <span class="pastille admin">Admin</span></div>
   <div class="page">
     <button class="btn" id="ajouter">${icone('plus', 20)}Ajouter un membre</button>
+    <a class="btn second" href="#/etiquettes">${icone('qr', 20)}Étiquettes QR à imprimer</a>
     <h2 class="titre-section">Membres (${membres.filter((m) => m.actif).length} actifs)</h2>
     <div class="carte liste">${membres.map((m) => `
       <button class="ligne" data-id="${m.id}" style="width:100%;background:none;border:0;border-bottom:1px solid #EEF0F2;text-align:left;cursor:pointer;${m.actif ? '' : 'opacity:.6'}">

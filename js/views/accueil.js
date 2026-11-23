@@ -1,4 +1,5 @@
-import { esc, icone, pastille, GRAVITES, STATUTS, ROLES, quand, sujetPanne, nomEngin, peutSignaler } from '../ui.js';
+import { esc, icone, pastille, GRAVITES, STATUTS, ROLES, quand, sujetPanne, nomEngin, peutSignaler, toast } from '../ui.js';
+import { scannerQR, idEnginDepuisQR } from '../scanner.js';
 
 export const lignePanne = (p) => `
   <a class="ligne" href="#/panne/${p.id}">
@@ -15,7 +16,7 @@ export async function afficher(ctx) {
   const immobilises = engins.filter((e) => e.etat === 'immobilise');
   const role = moi.est_admin ? `${ROLES[moi.role].label} · admin` : ROLES[moi.role].label;
 
-  ctx.rendre(`
+  const el = ctx.rendre(`
   <div class="entete" style="display:flex;align-items:center;gap:12px">
     <img src="img/logo.png" alt="Logo du CFV" style="width:52px;height:52px;object-fit:contain">
     <div style="flex:1"><h1 style="font-size:20px">CFV Atelier</h1>
@@ -23,6 +24,7 @@ export async function afficher(ctx) {
   </div>
   <div class="page">
     ${peutSignaler(moi) ? `<a class="btn grand" href="#/signaler">${icone('plus')}Signaler un problème</a>` : ''}
+    <button class="btn second plein" id="scanner">${icone('qr', 22)}Scanner le QR code d'un engin</button>
     <div class="stats">
       <a class="stat" href="#/materiel" style="text-decoration:none;color:inherit"><b>${ouvertes.length}</b><span>Pannes ouvertes</span></a>
       <div class="stat ${bloquantes ? 'alerte' : ''}"><b>${bloquantes}</b><span>Bloquantes</span></div>
@@ -36,4 +38,11 @@ export async function afficher(ctx) {
     <h2 class="titre-section">Dernières déclarations</h2>
     <div class="carte liste">${recentes.map(lignePanne).join('') || '<p class="vide">Aucune déclaration pour le moment.</p>'}</div>
   </div>`);
+  if (!el) return;
+  el.querySelector('#scanner').onclick = async () => {
+    const texte = await scannerQR();
+    if (!texte) return;
+    const id = idEnginDepuisQR(texte);
+    if (id) ctx.aller('engin/' + id); else toast("Ce QR code n'est pas une étiquette CFV Atelier.");
+  };
 }

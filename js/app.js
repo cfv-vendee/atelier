@@ -26,6 +26,7 @@ const ROUTES = {
   voie: { vue: () => import('./views/voie.js'), onglet: 'voie' },
   profil: { vue: () => import('./views/profil.js'), onglet: 'profil' },
   admin: { vue: () => import('./views/admin.js'), onglet: 'profil', admin: true },
+  etiquettes: { vue: () => import('./views/etiquettes.js') },
 };
 const ONGLETS = [['accueil', 'Accueil'], ['materiel', 'Matériel'], ['voie', 'Voie'], ['profil', 'Profil']];
 

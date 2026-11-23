@@ -1,4 +1,6 @@
-import { esc, icone, pastille, ETATS, CATEGORIES, nomEngin, peutSignaler } from '../ui.js';
+import { esc, icone, pastille, ETATS, CATEGORIES, nomEngin, peutSignaler, peutReparer, feuille } from '../ui.js';
+import { qrSvg } from '../qr.js';
+import { lienEngin } from '../scanner.js';
 import { lignePanne } from './accueil.js';
 
 export async function afficher(ctx) {
@@ -16,7 +18,10 @@ export async function afficher(ctx) {
       ${e.surnom ? `<div class="aide" style="font-size:15px">dit${e.categorie === 'vapeur' ? 'e' : ''} « ${esc(e.surnom)} »</div>` : ''}
       <div>${pastille(ETATS[e.etat])}</div>
     </div>
-    ${peutSignaler(moi) ? `<a class="btn" href="#/signaler?engin=${e.id}">${icone('plus', 20)}Signaler une panne</a>` : ''}
+    <div class="${peutSignaler(moi) ? 'btns' : ''}" style="${peutSignaler(moi) ? '' : 'display:flex;flex-direction:column'}">
+      ${peutSignaler(moi) ? `<a class="btn" href="#/signaler?engin=${e.id}">${icone('plus', 20)}Signaler</a>` : ''}
+      <button class="btn second" id="qr">${icone('qr', 20)}QR code</button>
+    </div>
     ${e.notes ? `<div class="bandeau">${esc(e.notes)}</div>` : ''}
     <div class="segments" role="tablist" aria-label="Sections">
       <button role="tab" data-o="pannes">Pannes${ouvertes.length ? ` (${ouvertes.length})` : ''}</button>
@@ -40,5 +45,13 @@ export async function afficher(ctx) {
     }
   };
   el.querySelectorAll('[data-o]').forEach((b) => (b.onclick = () => { onglet = b.dataset.o; maj(); }));
+  el.querySelector('#qr').onclick = () => {
+    const { el: f, fermer } = feuille(`QR code · ${nomEngin(e)}`, `
+      <div class="qr-grand">${qrSvg(lienEngin(e.id), { niveau: 'Q', titre: 'QR code ' + nomEngin(e) })}</div>
+      <p class="aide" style="text-align:center;margin:0">Ce QR code ouvre la fiche de l'engin. Collez-le dans la cabine ou sur la caisse.</p>
+      ${moi.est_admin || peutReparer(moi) ? `<a class="btn plein" href="#/etiquettes?engin=${e.id}">Imprimer l’étiquette</a>` : ''}
+      <button class="btn neutre plein" id="fermer">Fermer</button>`);
+    f.querySelector('#fermer').onclick = fermer;
+  };
   maj();
 }

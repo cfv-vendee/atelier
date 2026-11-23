@@ -83,6 +83,7 @@ const ICONES = {
   bouclier: '<path d="M12 3l8 3v6c0 4.5-3.4 8-8 9-4.6-1-8-4.5-8-9V6z"/>',
   crayon: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>',
   check: '<path d="M20 6L9 17l-5-5"/>',
+  qr: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3"/><path d="M8 8h3v3H8zM13 13h3v3h-3zM13 8h3M8 16h3"/>',
 };
 export const icone = (nom, taille = 24, extra = '') =>
   `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${ICONES[nom]}</svg>`;
@@ -104,7 +105,8 @@ export function feuille(titre, contenu) {
   const voile = document.createElement('div');
   voile.className = 'voile';
   voile.innerHTML = `<div class="feuille" role="dialog" aria-modal="true" aria-label="${esc(titre)}"><h2>${esc(titre)}</h2>${contenu}</div>`;
-  const fermer = () => { voile.remove(); document.removeEventListener('keydown', echap); };
+  const fermer = () => { voile.remove(); document.removeEventListener('keydown', echap); window.removeEventListener('hashchange', fermer); };
+  window.addEventListener('hashchange', fermer);
   const echap = (e) => { if (e.key === 'Escape') fermer(); };
   voile.addEventListener('click', (e) => { if (e.target === voile) fermer(); });
   document.addEventListener('keydown', echap);
