@@ -197,3 +197,9 @@ textarea.saisie { resize: vertical; min-height: 96px; }
 .scanner-viseur { position: absolute; inset: 18%; border: 3px solid rgba(255,255,255,.9); border-radius: 16px; box-shadow: 0 0 0 999px rgba(0,0,0,.35); }
 .scanner-aide { margin: 0; text-align: center; font-size: 16px; max-width: 460px; }
 .scanner .btn { min-width: 200px; }
+
+/* Bandeau réseau */
+.reseau { position: sticky; top: 0; z-index: 30; background: #3F4650; color: #fff; font-size: 13px; font-weight: 600; line-height: 1.35;
+  padding: 8px 14px; padding-top: calc(8px + env(safe-area-inset-top)); }
+.reseau.attente { background: var(--orange-point); }
+.reseau + #vue .barre { top: 0; }

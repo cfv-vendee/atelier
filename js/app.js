@@ -1,6 +1,7 @@
 // Démarrage, navigation entre écrans et session.
 import { CONFIG } from './config.js';
-import { esc, icone } from './ui.js';
+import { esc, icone, toast } from './ui.js';
+import { creerEnvois } from './envois.js';
 
 // Lien reçu par e-mail (invitation ou mot de passe oublié) : à lire avant que la session ne l'efface.
 const paramsLien = new URLSearchParams(location.hash.replace(/^#\/?/, ''));
@@ -12,6 +13,7 @@ const api = CONFIG.supabaseUrl
   ? (await import('./api-supabase.js')).creerApi({ url: CONFIG.supabaseUrl, cle: CONFIG.supabaseCle })
   : (await import('./api-demo.js')).creerApi();
 
+const envois = creerEnvois(api);
 const vueEl = document.getElementById('vue');
 const navEl = document.getElementById('nav');
 let moi = null;
@@ -48,7 +50,7 @@ async function router() {
   const [chemin, qs] = hash.split('?');
   const [nom, ...params] = chemin.split('/').filter(Boolean);
   const ctx = {
-    api, moi, params, query: new URLSearchParams(qs || ''), aller,
+    api, moi, envois, params, query: new URLSearchParams(qs || ''), aller,
     // Affiche le contenu si l'utilisateur n'a pas changé d'écran entre-temps.
     rendre(html) { if (mon !== jeton) return null; vueEl.innerHTML = html; return vueEl; },
     async rafraichirMoi() { moi = await api.moi(); ctx.moi = moi; return moi; },
@@ -103,7 +105,38 @@ api.surAuth((evt) => {
 window.addEventListener('hashchange', router);
 router();
 
-if ('serviceWorker' in navigator && location.protocol === 'https:') {
+// ───── Réseau : bandeau d'état et envoi automatique de ce qui attend ─────
+const bandeau = document.createElement('div');
+bandeau.className = 'reseau';
+bandeau.setAttribute('role', 'status');
+bandeau.hidden = true;
+document.getElementById('app').prepend(bandeau);
+let nbEnAttente = 0;
+function majBandeau() {
+  const horsLigne = !navigator.onLine;
+  const attente = nbEnAttente ? ` · ${nbEnAttente} envoi${nbEnAttente > 1 ? 's' : ''} en attente` : '';
+  bandeau.hidden = !horsLigne && !nbEnAttente;
+  bandeau.classList.toggle('attente', !horsLigne);
+  bandeau.textContent = horsLigne
+    ? `Hors connexion${attente}. Vous pouvez consulter et signaler : l'envoi se fera au retour du réseau.`
+    : `Envoi en cours${attente}…`;
+}
+envois.surChangement((liste) => { nbEnAttente = liste.length; majBandeau(); });
+async function synchroniser() {
+  if (!moi?.actif) return;
+  const n = await envois.synchroniser().catch(() => 0);
+  if (n) {
+    toast(`${n} envoi${n > 1 ? 's' : ''} en attente ${n > 1 ? 'ont été envoyés' : 'a été envoyé'}.`);
+    if (!document.querySelector('.voile, .scanner') && !/signaler/.test(location.hash)) router();
+  }
+}
+window.addEventListener('online', () => { majBandeau(); synchroniser(); });
+window.addEventListener('offline', majBandeau);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') synchroniser(); });
+setInterval(synchroniser, 60000);
+envois.lister().then((l) => { nbEnAttente = l.length; majBandeau(); setTimeout(synchroniser, 1500); }).catch(() => {});
+
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 

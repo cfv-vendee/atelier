@@ -10,7 +10,7 @@ export const lignePanne = (p) => `
 
 export async function afficher(ctx) {
   const { api, moi } = ctx;
-  const [ouvertes, recentes, engins] = await Promise.all([api.pannes({ ouvertes: true }), api.pannes({ limite: 8 }), api.engins()]);
+  const [ouvertes, recentes, engins, enAttente] = await Promise.all([api.pannes({ ouvertes: true }), api.pannes({ limite: 8 }), api.engins(), ctx.envois.lister().catch(() => [])]);
   const bloquantes = ouvertes.filter((p) => p.gravite === 'bloquante').length;
   const voie = ouvertes.filter((p) => p.cible === 'voie').length;
   const immobilises = engins.filter((e) => e.etat === 'immobilise');
@@ -25,6 +25,17 @@ export async function afficher(ctx) {
   <div class="page">
     ${peutSignaler(moi) ? `<a class="btn grand" href="#/signaler">${icone('plus')}Signaler un problème</a>` : ''}
     <button class="btn second plein" id="scanner">${icone('qr', 22)}Scanner le QR code d'un engin</button>
+    ${enAttente.length ? `<h2 class="titre-section">En attente d'envoi (${enAttente.length})</h2>
+    <div class="carte liste" id="attente">${enAttente.map((it) => `
+      <div class="ligne">
+        <span class="code orange" aria-hidden="true">${icone('envoi', 22)}</span>
+        <span class="txt"><span class="t">${esc(it.resume || 'Envoi')}</span>
+          <span class="m">${it.type === 'panne' ? 'Signalement' : 'Mise à jour'} · fait ${esc(quand(it.cree))}${it.fichiers?.length ? ` · ${it.fichiers.length} photo${it.fichiers.length > 1 ? 's' : ''}` : ''}</span>
+          ${it.erreur ? `<span class="erreur" style="font-size:13px">Refusé : ${esc(it.erreur)}</span>` : ''}</span>
+        ${it.erreur ? `<button class="btn danger" style="min-height:44px;padding:0 12px;font-size:14px" data-retirer="${esc(it.id)}">Supprimer</button>` : ''}
+      </div>`).join('')}
+      <div style="padding:10px 14px"><button class="btn second plein" id="renvoyer">Envoyer maintenant</button></div>
+    </div>` : ''}
     <div class="stats">
       <a class="stat" href="#/materiel" style="text-decoration:none;color:inherit"><b>${ouvertes.length}</b><span>Pannes ouvertes</span></a>
       <div class="stat ${bloquantes ? 'alerte' : ''}"><b>${bloquantes}</b><span>Bloquantes</span></div>
@@ -39,6 +50,16 @@ export async function afficher(ctx) {
     <div class="carte liste">${recentes.map(lignePanne).join('') || '<p class="vide">Aucune déclaration pour le moment.</p>'}</div>
   </div>`);
   if (!el) return;
+  el.querySelector('#renvoyer')?.addEventListener('click', async () => {
+    if (!navigator.onLine) { toast('Toujours pas de réseau : nouvel essai automatique dès son retour.'); return; }
+    const n = await ctx.envois.synchroniser();
+    toast(n ? `${n} envoi${n > 1 ? 's' : ''} effectué${n > 1 ? 's' : ''}.` : "Rien n'a pu être envoyé pour l'instant.");
+    ctx.aller('accueil');
+  });
+  el.querySelectorAll('[data-retirer]').forEach((b) => (b.onclick = async () => {
+    if (!b.dataset.confirme) { b.dataset.confirme = '1'; b.textContent = 'Confirmer'; return; }
+    await ctx.envois.retirer(b.dataset.retirer); ctx.aller('accueil');
+  }));
   el.querySelector('#scanner').onclick = async () => {
     const texte = await scannerQR();
     if (!texte) return;

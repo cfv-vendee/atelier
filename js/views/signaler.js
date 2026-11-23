@@ -114,9 +114,10 @@ export async function afficher(ctx) {
     const bouton = el.querySelector('#envoyer');
     bouton.disabled = true; bouton.textContent = 'Envoi…';
     try {
-      const id = await api.signaler(donnees, photos());
-      toast('Signalement envoyé, merci !');
-      ctx.aller('panne/' + id);
+      const panneId = crypto.randomUUID();
+      const resultat = await ctx.envois.envoyerOuGarder({ type: 'panne', panneId, donnees, fichiers: photos(), resume: titre });
+      if (resultat === 'envoye') { toast('Signalement envoyé, merci !'); ctx.aller('panne/' + panneId); }
+      else { toast('Pas de réseau : signalement gardé dans le téléphone. Il partira tout seul au retour du réseau.'); ctx.aller('accueil'); }
     } catch (x) {
       err.textContent = x.message; bouton.disabled = false; bouton.textContent = 'Envoyer le signalement';
     }

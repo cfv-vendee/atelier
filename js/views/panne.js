@@ -78,8 +78,10 @@ function ouvrirAction(ctx, p, type) {
     if (type === 'commentaire' && !texte && !photos().length) { el.querySelector('#err').textContent = 'Écrivez un message ou ajoutez une photo.'; return; }
     e.target.disabled = true;
     try {
-      await ctx.api.ajouterEvenement(p.id, type, texte, photos());
-      fermer(); toast('Enregistré'); ctx.aller('panne/' + p.id);
+      const resultat = await ctx.envois.envoyerOuGarder({ type: 'evenement', panneId: p.id, evId: crypto.randomUUID(), typeEv: type, texte, fichiers: photos(), resume: `${a.titre} · ${p.titre}` });
+      fermer();
+      toast(resultat === 'envoye' ? 'Enregistré' : 'Pas de réseau : gardé dans le téléphone, envoi automatique au retour du réseau.');
+      ctx.aller('panne/' + p.id);
     } catch (x) { el.querySelector('#err').textContent = x.message; e.target.disabled = false; }
   };
 }

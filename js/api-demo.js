@@ -42,11 +42,12 @@ function donneesInitiales() {
   return d;
 }
 
-function ajouterEvt(d, panneId, auteurId, type, texte, date = new Date().toISOString()) {
+function ajouterEvt(d, panneId, auteurId, type, texte, date) {
+  date = date || new Date().toISOString();
   const ev = { id: uid(), panne_id: panneId, auteur_id: auteurId, type, texte: texte || null, created_at: date };
   d.evenements.push(ev);
   const p = d.pannes.find((x) => x.id === panneId);
-  if (type === 'prise_en_charge') Object.assign(p, { statut: 'prise_en_charge', pris_par: auteurId });
+  if (type === 'prise_en_charge' && p.statut === 'ouverte') Object.assign(p, { statut: 'prise_en_charge', pris_par: auteurId });
   if (type === 'intervention' && p.statut !== 'reparee') Object.assign(p, { statut: 'en_cours', pris_par: p.pris_par || auteurId });
   if (type === 'reparee') Object.assign(p, { statut: 'reparee', reparee_at: date });
   if (type === 'reouverte') Object.assign(p, { statut: 'ouverte', reparee_at: null, pris_par: null });
@@ -115,10 +116,11 @@ export function creerApi() {
         photos: d.photos.filter((x) => x.panne_id === id).map((x) => ({ ...x, url: x.donnees })),
       };
     },
-    async signaler(donnees, fichiers = []) {
+    async signaler(donnees, fichiers = [], options = {}) {
       exiger(peutSignaler(moi()));
       if (!donnees.titre?.trim()) throw new Error('Indiquez un titre.');
-      const id = uid(), maintenant = new Date().toISOString();
+      const id = options.id || uid(), maintenant = options.created_at || new Date().toISOString();
+      if (d.pannes.some((p) => p.id === id)) return id;   // déjà envoyé
       const annee = new Date().getFullYear();
       const numero = Math.max(0, ...d.pannes.filter((p) => p.annee === annee).map((p) => p.numero)) + 1;
       d.pannes.push({ engin_id: null, element: null, pk: null, lat: null, lng: null, precision_m: null, description: null, ...donnees,
@@ -128,9 +130,12 @@ export function creerApi() {
       sauver();
       return id;
     },
-    async ajouterEvenement(panneId, type, texte, fichiers = []) {
+    async ajouterEvenement(panneId, type, texte, fichiers = [], options = {}) {
       exiger(type === 'commentaire' ? peutSignaler(moi()) : peutReparer(moi()));
-      const ev = ajouterEvt(d, panneId, moi().id, type, texte);
+      if (options.id && d.evenements.some((e) => e.id === options.id)) return;   // déjà envoyé
+      if (!d.pannes.some((p) => p.id === panneId)) throw new Error('Panne introuvable.');
+      const ev = ajouterEvt(d, panneId, moi().id, type, texte, options.created_at);
+      if (options.id) ev.id = options.id;
       for (const f of fichiers) d.photos.push({ id: uid(), panne_id: panneId, evenement_id: ev.id, donnees: await lireFichier(f) });
       sauver();
     },
