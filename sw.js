@@ -1,10 +1,10 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
-const VERSION = 'atelier-v13';
+const VERSION = 'atelier-v14';
 const FICHIERS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/ui.js', 'js/api-demo.js', 'js/api-supabase.js', 'data/parc.js',
   'js/views/connexion.js', 'js/views/accueil.js', 'js/views/signaler.js', 'js/views/panne.js',
-  'js/views/materiel.js', 'js/views/engin.js', 'js/views/voie.js', 'js/views/profil.js', 'js/views/admin.js', 'js/views/etiquettes.js', 'js/qr.js', 'js/scanner.js', 'js/envois.js', 'js/views/tournee.js', 'js/views/releve.js', 'js/recadrage.js',
+  'js/views/materiel.js', 'js/views/engin.js', 'js/views/voie.js', 'js/views/profil.js', 'js/views/admin.js', 'js/views/etiquettes.js', 'js/qr.js', 'js/scanner.js', 'js/envois.js', 'js/views/tournee.js', 'js/views/releve.js', 'js/recadrage.js', 'js/notifications.js',
   'img/logo.png', 'img/icone-192.png', 'img/icone-512.png',
 ];
 
@@ -41,4 +41,24 @@ self.addEventListener('fetch', (e) => {
       return rep;
     }).catch(() => caches.match(e.request).then((r) => r || caches.match('index.html')))
   );
+});
+
+// ───── Notifications reçues ─────
+self.addEventListener('push', (e) => {
+  let m = {};
+  try { m = e.data ? e.data.json() : {}; } catch { m = { corps: e.data?.text() }; }
+  e.waitUntil(self.registration.showNotification(m.titre || 'CFV Atelier', {
+    body: m.corps || '', icon: 'img/icone-192.png', badge: 'img/icone-192.png',
+    tag: m.tag, renotify: !!m.tag, data: { url: m.url || '#/accueil' },
+  }));
+});
+// Appui sur la notification : ouvre l'appli (ou la ramène au premier plan) sur la bonne fiche.
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const chemin = e.notification.data?.url || '#/accueil';
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(async (fenetres) => {
+    const f = fenetres.find((c) => c.url.startsWith(self.registration.scope));
+    if (f) { await f.focus(); f.postMessage({ type: 'aller', chemin }); return; }
+    return self.clients.openWindow(new URL(self.registration.scope).href + chemin);
+  }));
 });

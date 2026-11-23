@@ -259,3 +259,17 @@ textarea.saisie { resize: vertical; min-height: 96px; }
 .photo-profil { display: flex; align-items: center; gap: 14px; }
 .photo-profil .actions { display: flex; flex-direction: column; gap: 6px; flex: 1; }
 .photo-profil .btn { min-height: 44px; font-size: 15px; }
+/* Notifications (profil) */
+.notifs { display: flex; flex-direction: column; gap: 12px; }
+.notif-etat { margin: 0; font-size: 15px; } .notif-etat.ok { color: var(--ok); font-weight: 700; display: flex; align-items: center; gap: 6px; }
+.interrupteurs { display: flex; flex-direction: column; border-top: 1px solid #EEF0F2; }
+.interrupteur { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid #EEF0F2; cursor: pointer; }
+.interrupteur:last-child { border-bottom: 0; padding-bottom: 0; }
+.interrupteur > span { flex: 1; display: flex; flex-direction: column; gap: 2px; font-size: 15px; }
+.interrupteur small { color: var(--gris); font-size: 13px; }
+.interrupteur input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.interrupteur i { flex: none; width: 50px; height: 30px; border-radius: 15px; background: #C9CED5; position: relative; transition: background .15s; }
+.interrupteur i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 12px; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); transition: transform .15s; }
+.interrupteur input:checked + i { background: var(--vert); }
+.interrupteur input:checked + i::after { transform: translateX(20px); }
+.interrupteur input:focus-visible + i { outline: 3px solid #8FC2A8; outline-offset: 2px; }

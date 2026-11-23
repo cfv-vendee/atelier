@@ -1,6 +1,7 @@
 import { esc, icone, ROLES, feuille, toast, avatar } from '../ui.js';
 import { lignePanne } from './accueil.js';
 import { recadrer } from '../recadrage.js';
+import * as notifications from '../notifications.js';
 
 export async function afficher(ctx) {
   const { api, moi } = ctx;
@@ -23,14 +24,14 @@ export async function afficher(ctx) {
     <h2 class="titre-section">Mes derniers signalements</h2>
     <div class="carte liste">${mesPannes.map(lignePanne).join('') || '<p class="vide">Vous n’avez encore rien signalé.</p>'}</div>
     <h2 class="titre-section">Notifications</h2>
-    <div class="carte pad aide">Les alertes sur le téléphone (pannes bloquantes, suivi de vos signalements, son « tchou tchou ») arrivent dans la prochaine mise à jour.</div>
+    <div class="carte pad notifs" id="notifs"><p class="aide" style="margin:0">Chargement…</p></div>
     ${api.demo ? '' : '<button class="btn neutre" id="mdp">Changer mon mot de passe</button>'}
     <button class="btn danger" id="sortir">Se déconnecter</button>
   </div>`);
   if (!el) return;
   el.querySelector('#sortir').onclick = async () => {
     const enAttente = await ctx.envois.lister().catch(() => []);
-    if (!enAttente.length) return api.deconnexion();
+    if (!enAttente.length) { await notifications.oublierCeTelephone(api); return api.deconnexion(); }
     const { el: f, fermer } = feuille('Envois en attente', `
       <p style="margin:0">Vous avez <b>${enAttente.length} envoi${enAttente.length > 1 ? 's' : ''}</b> ${enAttente.length > 1 ? 'qui ne sont pas encore partis' : "qui n'est pas encore parti"} (pas de réseau).
       Si vous vous déconnectez maintenant, ${enAttente.length > 1 ? 'ils seront perdus' : 'il sera perdu'}.</p>
@@ -39,7 +40,7 @@ export async function afficher(ctx) {
     f.querySelector('#garder').onclick = fermer;
     f.querySelector('#perdre').onclick = async () => {
       for (const it of enAttente) await ctx.envois.retirer(it.id);
-      fermer(); api.deconnexion();
+      fermer(); await notifications.oublierCeTelephone(api); api.deconnexion();
     };
   };
   el.querySelector('#mdp')?.addEventListener('click', () => {
@@ -103,4 +104,63 @@ export async function afficher(ctx) {
       } catch (x) { f.querySelector('#err').textContent = x.message; ev.target.disabled = false; }
     };
   };
+  afficherNotifications(ctx, el.querySelector('#notifs'));
+}
+
+// ───── Notifications : activation sur ce téléphone et choix des alertes ─────
+const PREFS = {
+  bloquantes: { label: 'Pannes bloquantes', aide: 'Dès qu’une panne bloquante est signalée', pour: 'responsable' },
+  signalements: { label: 'Nouveaux signalements', aide: 'Les autres gravités : à surveiller, mineure', pour: 'responsable' },
+  suivi: { label: 'Suivi de mes signalements', aide: 'Quand ils sont pris en charge, puis réparés', pour: 'signale' },
+};
+async function afficherNotifications(ctx, boite) {
+  const { api, moi } = ctx;
+  const responsable = moi.est_admin || moi.referent_voie || ['conducteur_technicien', 'technicien'].includes(moi.role);
+  const signale = moi.role !== 'bureau' || moi.est_admin;
+  const visibles = Object.entries(PREFS).filter(([, p]) => (p.pour === 'responsable' ? responsable : signale));
+  if (!visibles.length) { boite.innerHTML = '<p class="aide" style="margin:0">Le rôle Bureau ne reçoit pas d’alertes.</p>'; return; }
+  const prefs = { bloquantes: true, signalements: true, suivi: true, ...(moi.notifications || {}) };
+  const e = await notifications.etat();
+  const domaines = moi.est_admin ? ['le matériel', 'la voie']
+    : [['conducteur_technicien', 'technicien'].includes(moi.role) && 'le matériel', moi.referent_voie && 'la voie'].filter(Boolean);
+  const qui = domaines.length ? `les nouveaux problèmes sur ${domaines.join(' et ')}` : null;
+  const ETATS = {
+    actif: `<p class="notif-etat ok">${icone('check', 18)} Activées sur ce téléphone</p>`,
+    inactif: `<button class="btn plein" id="activer">Activer les notifications sur ce téléphone</button>`,
+    refuse: `<p class="notif-etat">Les notifications sont bloquées pour l’appli. Autorisez-les dans les réglages du téléphone (Réglages → Notifications → CFV Atelier), puis revenez ici.</p>`,
+    installer: `<p class="notif-etat">Sur iPhone, les notifications marchent seulement quand l’appli est <b>ajoutée à l’écran d’accueil</b> (iOS 16.4 ou plus) : dans Safari, <b>Partager → Sur l’écran d’accueil</b>, puis ouvrez l’appli depuis cette icône.</p>`,
+    impossible: `<p class="notif-etat">Ce navigateur ne permet pas de recevoir des notifications.</p>`,
+  };
+  boite.innerHTML = `
+    ${ETATS[e]}
+    ${qui ? `<p class="aide" style="margin:0">Vous êtes prévenu pour ${qui}, et pour le suivi de vos propres signalements.</p>` : ''}
+    <div class="interrupteurs">${visibles.map(([k, p]) => `
+      <label class="interrupteur"><span><b>${p.label}</b><small>${p.aide}</small></span>
+        <input type="checkbox" role="switch" data-pref="${k}" ${prefs[k] ? 'checked' : ''}><i aria-hidden="true"></i></label>`).join('')}</div>
+    ${e === 'actif' ? `<div class="btns"><button class="btn second" id="essai">Envoyer un essai</button><button class="btn neutre" id="desactiver">Désactiver ici</button></div>` : ''}
+    <p class="erreur" id="err-notif" role="alert"></p>`;
+  const err = boite.querySelector('#err-notif');
+  const recharger = () => afficherNotifications(ctx, boite);
+  boite.querySelector('#activer')?.addEventListener('click', async (ev) => {
+    ev.target.disabled = true; err.textContent = '';
+    try { await notifications.activer(api); toast('Notifications activées'); recharger(); }
+    catch (x) { err.textContent = x.message; ev.target.disabled = false; }
+  });
+  boite.querySelector('#desactiver')?.addEventListener('click', async () => {
+    await notifications.desactiver(api); toast('Notifications désactivées sur ce téléphone'); recharger();
+  });
+  boite.querySelector('#essai')?.addEventListener('click', async (ev) => {
+    ev.target.disabled = true; err.textContent = '';
+    try {
+      const r = await api.testerNotification();
+      if (!r?.envoyes) err.textContent = 'Aucun téléphone n’a pu être prévenu. Désactivez puis réactivez les notifications.';
+      else toast('Essai envoyé : la notification arrive dans quelques secondes');
+    } catch (x) { err.textContent = x.message; }
+    ev.target.disabled = false;
+  });
+  boite.querySelectorAll('[data-pref]').forEach((c) => c.addEventListener('change', async () => {
+    const nouvelles = { ...prefs, [c.dataset.pref]: c.checked };
+    try { await api.majNotifications(nouvelles); Object.assign(prefs, nouvelles); moi.notifications = nouvelles; await ctx.rafraichirMoi().catch(() => {}); }
+    catch (x) { c.checked = !c.checked; err.textContent = x.message; }
+  }));
 }

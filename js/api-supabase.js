@@ -8,7 +8,7 @@ const RESEAU = /Failed to fetch|Load failed|NetworkError|network ?error|fetch fa
 const exigerId = (id, quoi) => { if (!UUID.test(id || '')) throw new Error(`${quoi} introuvable. Le lien ou le QR code ne correspond à rien dans l'appli du CFV.`); };
 const PANNE_COLS = '*, engin:engins(id, designation, surnom), auteur:profils!pannes_auteur_id_fkey(prenom, nom), technicien:profils!pannes_pris_par_fkey(prenom, nom)';
 const PREFIXE_CACHE = 'cfv-cache:';
-const PROFIL_COLS = 'id, prenom, nom, role, est_admin, referent_voie, actif, photo, created_at';
+const PROFIL_COLS = 'id, prenom, nom, role, est_admin, referent_voie, actif, photo, notifications, created_at';
 
 function erreur(message, code) {
   const e = new Error(traduire(message));
@@ -109,6 +109,26 @@ export function creerApi({ url, cle }) {
       });
     },
     async majMoi(champs) { verif(await sb.from('profils').update(champs).eq('id', await monId())); },
+    // Notifications : abonnement de ce téléphone, préférences, essai.
+    async enregistrerAbonnement(abo, appareil) {
+      verif(await sb.rpc('enregistrer_abonnement', { p_endpoint: abo.endpoint, p_p256dh: abo.keys.p256dh, p_auth: abo.keys.auth, p_appareil: appareil }));
+    },
+    async retirerAbonnement(endpoint) { verif(await sb.from('abonnements_push').delete().eq('endpoint', endpoint)); },
+    async majNotifications(prefs) { verif(await sb.from('profils').update({ notifications: prefs }).eq('id', await monId())); },
+    async clePush() {
+      const { data, error } = await sb.functions.invoke('notifier', { body: { action: 'cle' } });
+      if (error || !data?.publique) throw erreur("Le serveur des notifications ne répond pas. Réessayez dans un instant.");
+      return data.publique;
+    },
+    async testerNotification() {
+      const { data, error } = await sb.functions.invoke('notifier', { body: { action: 'test' } });
+      if (error) {
+        let msg = error.message;
+        try { msg = (await error.context.json()).erreur || msg; } catch { /* réponse non JSON */ }
+        throw erreur(msg);
+      }
+      return data;
+    },
     // Photo de profil : nécessite le réseau (pas mise en attente).
     async changerPhoto(fichier) {
       if (!navigator.onLine) throw erreur('Pas de connexion internet : la photo pourra être changée au retour du réseau.');

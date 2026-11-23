@@ -94,6 +94,16 @@ export function creerApi() {
 
     async moi() { return moi() ? { ...moi() } : null; },
     async majMoi(champs) { Object.assign(moi(), { prenom: champs.prenom, nom: champs.nom, telephone: champs.telephone }); sauver(); },
+    // Notifications (démonstration) : rien n'est envoyé par un serveur, l'essai s'affiche directement.
+    async clePush() { return 'BDdwmwCwwptmMxogrvjbkyMalgS-1KPgl5_RUPeoArW23peDu4SVfe84tRr3d2VTdROH9Tu_AicYVb2_y2jtA7U'; },
+    async enregistrerAbonnement() {},
+    async retirerAbonnement() {},
+    async majNotifications(prefs) { moi().notifications = prefs; sauver(); },
+    async testerNotification() {
+      const reg = await navigator.serviceWorker?.getRegistration();
+      if (reg) await reg.showNotification('CFV Atelier', { body: 'Les notifications fonctionnent sur ce téléphone (démonstration).', icon: 'img/icone-192.png' });
+      return { envoyes: reg ? 1 : 0 };
+    },
     async changerPhoto(fichier) { moi().photo_url = await lireFichier(await photoCarree(fichier, 200)); moi().photo = 'demo'; sauver(); },
     async retirerPhoto(id) {
       if (id && id !== moi().id) exiger(moi()?.est_admin);

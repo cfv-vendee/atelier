@@ -146,6 +146,10 @@ setTimeout(() => envois.lister().then((l) => { nbEnAttente = l.length; majBandea
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   navigator.serviceWorker.register('sw.js').catch(() => {});
 }
+// Appui sur une notification alors que l'appli est déjà ouverte : aller à la fiche concernée.
+navigator.serviceWorker?.addEventListener('message', (e) => {
+  if (e.data?.type === 'aller' && /^#\/[\w\-/?=&]*$/.test(e.data.chemin || '')) location.hash = e.data.chemin.slice(1);
+});
 
 // Bouton « Retour » : revient à l'écran précédent s'il y en a un, sinon à l'adresse prévue.
 document.addEventListener('click', (e) => {
