@@ -1,5 +1,5 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
-const VERSION = 'atelier-v11';
+const VERSION = 'atelier-v12';
 const FICHIERS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/ui.js', 'js/api-demo.js', 'js/api-supabase.js', 'data/parc.js',
@@ -10,7 +10,7 @@ const FICHIERS = [
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then(async (c) => {
-    await c.addAll(FICHIERS);
+    await c.addAll(FICHIERS.map((f) => new Request(f, { cache: 'reload' })));
     // Lecteur de QR code gardé d'avance, pour pouvoir scanner même sans réseau (meilleur effort).
     await c.add('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js').catch(() => {});
   }).then(() => self.skipWaiting()));
@@ -32,8 +32,10 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   if (url.origin !== location.origin) return;
+  // « no-cache » : on redemande toujours au serveur s'il y a du nouveau (sinon le navigateur
+  // peut resservir une ancienne version pendant 10 minutes après une mise à jour).
   e.respondWith(
-    fetch(e.request).then((rep) => {
+    fetch(e.request.mode === 'navigate' ? e.request.url : e.request, { cache: 'no-cache' }).then((rep) => {
       const copie = rep.clone();
       caches.open(VERSION).then((c) => c.put(e.request, copie));
       return rep;
