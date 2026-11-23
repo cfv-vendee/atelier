@@ -1,4 +1,4 @@
-import { esc, icone, pastille, GRAVITES, STATUTS, ROLES, quand, sujetPanne, nomEngin, peutSignaler, toast } from '../ui.js';
+import { esc, icone, pastille, GRAVITES, STATUTS, ROLES, quand, sujetPanne, nomEngin, peutSignaler, peutInspecter, toast } from '../ui.js';
 import { scannerQR, idEnginDepuisQR } from '../scanner.js';
 import { tourneeEnCours } from './tournee.js';
 
@@ -16,7 +16,7 @@ export async function afficher(ctx) {
   const voie = ouvertes.filter((p) => p.cible === 'voie').length;
   const materiel = ouvertes.length - voie;
   const immobilises = engins.filter((e) => e.etat === 'immobilise');
-  const role = moi.est_admin ? `${ROLES[moi.role].label} · admin` : ROLES[moi.role].label;
+  const role = ROLES[moi.role].label + (moi.referent_voie ? ' · référent voie' : '') + (moi.est_admin ? ' · admin' : '');
 
   const el = ctx.rendre(`
   <div class="entete" style="display:flex;align-items:center;gap:12px">
@@ -25,7 +25,7 @@ export async function afficher(ctx) {
       <div class="aide" style="font-size:14px">Bonjour ${esc(moi.prenom)} · ${esc(role)}</div></div>
   </div>
   <div class="page">
-    ${peutSignaler(moi) && tourneeEnCours(moi.id) ? `<a class="bandeau" href="#/tournee" style="text-decoration:none;font-weight:700">Tournée d'inspection en cours : appuyez pour la reprendre →</a>` : ''}
+    ${peutInspecter(moi) && tourneeEnCours(moi.id) ? `<a class="bandeau" href="#/tournee" style="text-decoration:none;font-weight:700">Tournée d'inspection en cours : appuyez pour la reprendre →</a>` : ''}
     ${peutSignaler(moi) ? `<a class="btn grand" href="#/signaler">${icone('plus')}Signaler un problème</a>` : ''}
     <button class="btn second plein" id="scanner">${icone('qr', 22)}Scanner le QR code d'un engin</button>
     ${enAttente.length ? `<h2 class="titre-section">En attente d'envoi (${enAttente.length})</h2>

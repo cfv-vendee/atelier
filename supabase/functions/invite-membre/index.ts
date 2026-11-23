@@ -45,7 +45,7 @@ Deno.serve(async (req) => {
         id: data.user.id, email,
         prenom: String(corps.prenom ?? "").trim(), nom: String(corps.nom ?? "").trim(),
         telephone: corps.telephone ? String(corps.telephone).trim() : null,
-        role: corps.role, est_admin: !!corps.est_admin, actif: true,
+        role: corps.role, est_admin: !!corps.est_admin, referent_voie: !!corps.referent_voie, actif: true,
       });
       if (e2) return reponse({ erreur: e2.message }, 500);
       return reponse({ ok: true, id: data.user.id });

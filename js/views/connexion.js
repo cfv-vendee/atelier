@@ -11,7 +11,7 @@ export async function afficher(ctx, { erreurLien } = {}) {
         <b>Mode démonstration</b>
         <span class="aide">Choisissez un profil pour essayer l'appli. Les données restent dans ce navigateur.</span>
         ${api.profilsDemo.map((m) => `<button class="btn neutre plein" data-id="${m.id}" style="justify-content:space-between">
-          <span>${esc(m.prenom)} ${esc(m.nom)}</span><span class="pastille ${m.est_admin ? 'admin' : ROLES[m.role].cls}">${m.est_admin ? 'Admin' : esc(ROLES[m.role].label)}</span></button>`).join('')}
+          <span>${esc(m.prenom)} ${esc(m.nom)}</span><span class="pastille ${m.est_admin ? 'admin' : ROLES[m.role].cls}">${m.est_admin ? 'Admin' : esc(ROLES[m.role].label) + (m.referent_voie ? ' · réf. voie' : '')}</span></button>`).join('')}
         <button class="lien" id="reinit">Remettre les données de démonstration à zéro</button>
       </div></div>`);
     if (!el) return;

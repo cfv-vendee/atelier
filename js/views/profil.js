@@ -13,7 +13,7 @@ export async function afficher(ctx) {
       <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
         <div style="font-size:18px;font-weight:800">${esc(moi.prenom)} ${esc(moi.nom)}</div>
         <div style="display:flex;gap:6px;flex-wrap:wrap"><span class="pastille ${ROLES[moi.role].cls}">${esc(ROLES[moi.role].label)}</span>
-          ${moi.est_admin ? '<span class="pastille admin">Administrateur</span>' : ''}</div>
+          ${moi.referent_voie ? '<span class="pastille voie-ref">Référent voie</span>' : ''}${moi.est_admin ? '<span class="pastille admin">Administrateur</span>' : ''}</div>
       </div>
       <button class="retour" id="modifier" aria-label="Modifier mes informations">${icone('crayon', 20)}</button>
     </div>

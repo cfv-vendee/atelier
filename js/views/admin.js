@@ -1,11 +1,14 @@
 import { esc, icone, ROLES, feuille, toast, quand } from '../ui.js';
 import { voieConfiguree } from './releve.js';
 
+// Colonnes : Bureau, Conducteur, Cond. + tech., Technicien, Référent voie, Admin. « · » = selon le rôle du membre.
 const DROITS = [
-  ['Tout consulter, exporter', [1, 1, 1, 1, 1]],
-  ['Signaler, commenter', [0, 1, 1, 1, 1]],
-  ['Intervenir, déclarer réparé', [0, 0, 1, 1, 1]],
-  ['Gérer les membres', [0, 0, 0, 0, 1]],
+  ['Tout consulter, exporter', [1, 1, 1, 1, 1, 1]],
+  ['Signaler un problème', [0, 1, 1, 1, '·', 1]],
+  ['Commenter une panne de matériel', [0, 1, 1, 1, '·', 1]],
+  ['Intervenir sur le matériel, déclarer réparé', [0, 0, 1, 1, '·', 1]],
+  ['Tournées, configuration et problèmes de voie', [0, 0, 0, 0, 1, 1]],
+  ['Gérer les membres et le parc', [0, 0, 0, 0, 0, 1]],
 ];
 
 export async function afficher(ctx) {
@@ -28,15 +31,16 @@ export async function afficher(ctx) {
         <span class="code green" style="border-radius:22px">${esc(((m.prenom?.[0] || '') + (m.nom?.[0] || '')).toUpperCase() || '?')}</span>
         <span class="txt"><span class="t">${esc(m.prenom)} ${esc(m.nom)}${m.id === moi.id ? ' (vous)' : ''}</span>
           <span style="display:flex;gap:6px;flex-wrap:wrap">${m.actif ? `<span class="pastille ${ROLES[m.role].cls}">${esc(ROLES[m.role].label)}</span>` : '<span class="pastille grey">Accès retiré</span>'}
-          ${m.est_admin ? '<span class="pastille admin">Admin</span>' : ''}</span></span>
+          ${m.referent_voie ? '<span class="pastille voie-ref">Réf. voie</span>' : ''}${m.est_admin ? '<span class="pastille admin">Admin</span>' : ''}</span></span>
         ${icone('crayon', 20)}
       </button>`).join('')}</div>
     <div class="carte pad"><b>Qui peut faire quoi ?</b>
       <table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">
-        <thead><tr><th scope="col" style="text-align:left"></th>${['Bur.', 'Cond.', 'C + T', 'Tech.', 'Admin'].map((c) => `<th scope="col" style="color:var(--gris);padding:6px 1px">${c}</th>`).join('')}</tr></thead>
+        <thead><tr><th scope="col" style="text-align:left"></th>${['Bur.', 'Cond.', 'C + T', 'Tech.', 'Réf. voie', 'Admin'].map((c) => `<th scope="col" style="color:var(--gris);padding:6px 1px;font-size:11px;line-height:1.15">${c}</th>`).join('')}</tr></thead>
         <tbody>${DROITS.map(([l, v]) => `<tr style="border-top:1px solid #EEF0F2"><th scope="row" style="text-align:left;font-weight:500;padding:8px 0">${l}</th>
-          ${v.map((x) => `<td style="text-align:center;font-weight:800;color:${x ? 'var(--ok)' : '#9AA1AB'}">${x ? '✓' : '—'}</td>`).join('')}</tr>`).join('')}</tbody>
-      </table></div>
+          ${v.map((x) => `<td style="text-align:center;font-weight:800;color:${x === 1 ? 'var(--ok)' : '#9AA1AB'}">${x === 1 ? '✓' : x ? '<span style="font-size:10px;font-weight:600">rôle</span>' : '—'}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+      <p class="aide" style="margin:8px 0 0;font-size:12px">Référent voie et Administrateur s'ajoutent au rôle. « rôle » : selon le rôle du membre.</p></div>
   </div>`);
   if (!el) return;
 
@@ -61,6 +65,8 @@ function formulaire(ctx, m) {
       ${Object.entries(ROLES).map(([k, r]) => `<option value="${k}" ${(m?.role || 'conducteur') === k ? 'selected' : ''}>${esc(r.label)}</option>`).join('')}</select></div>
     <label style="display:flex;align-items:center;gap:10px;min-height:44px;font-weight:600"><input type="checkbox" id="a" ${m?.est_admin ? 'checked' : ''} style="width:22px;height:22px">
       Administrateur (gère les membres et les paramètres)</label>
+    <label style="display:flex;align-items:center;gap:10px;min-height:44px;font-weight:600"><input type="checkbox" id="rv" ${m?.referent_voie ? 'checked' : ''} style="width:22px;height:22px">
+      Référent voie (tournées, configuration et problèmes de voie)</label>
     <p class="erreur" id="err" role="alert"></p>
     <div class="btns"><button class="btn neutre" id="annuler">Annuler</button><button class="btn" id="ok">${nouveau ? 'Envoyer l’invitation' : 'Enregistrer'}</button></div>
     ${!nouveau && m.id !== ctx.moi.id ? `<button class="btn ${m.actif ? 'danger' : 'second'} plein" id="acces">${m.actif ? 'Retirer l’accès' : 'Rétablir l’accès'}</button>
@@ -69,7 +75,7 @@ function formulaire(ctx, m) {
   el.querySelector('#annuler').onclick = fermer;
   el.querySelector('#ok').onclick = async (ev) => {
     const val = (id) => el.querySelector(id)?.value.trim();
-    const champs = { prenom: val('#p'), nom: val('#n'), telephone: val('#t') || null, role: val('#r'), est_admin: el.querySelector('#a').checked };
+    const champs = { prenom: val('#p'), nom: val('#n'), telephone: val('#t') || null, role: val('#r'), est_admin: el.querySelector('#a').checked, referent_voie: el.querySelector('#rv').checked };
     if (!champs.prenom || !champs.nom) { err.textContent = 'Le prénom et le nom sont nécessaires.'; return; }
     if (!nouveau && m.id === ctx.moi.id && !champs.est_admin) { err.textContent = 'Vous ne pouvez pas retirer vos propres droits d’administrateur.'; return; }
     ev.target.disabled = true;

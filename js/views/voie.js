@@ -1,4 +1,4 @@
-import { esc, icone, pastille, GRAVITES, STATUTS, ELEMENTS, formatPk, quand, peutSignaler } from '../ui.js';
+import { esc, icone, pastille, GRAVITES, STATUTS, ELEMENTS, formatPk, quand, peutSignaler, peutInspecter } from '../ui.js';
 import { tourneeEnCours, ligneTournee } from './tournee.js';
 import { voieConfiguree } from './releve.js';
 
@@ -7,17 +7,17 @@ let voirReparees = false;
 export async function afficher(ctx) {
   const { api, moi } = ctx;
   const [toutes, tournees, params] = await Promise.all([api.pannes({ cible: 'voie' }), api.tournees({ limite: 10 }).catch(() => []),
-    moi.est_admin ? api.parametres().catch(() => ({})) : {}]);
-  const releve = moi.est_admin && !voieConfiguree(params);
-  const active = peutSignaler(moi) ? tourneeEnCours(moi.id) : null;
+    peutInspecter(moi) ? api.parametres().catch(() => ({})) : {}]);
+  const releve = peutInspecter(moi) && !voieConfiguree(params);
+  const active = peutInspecter(moi) ? tourneeEnCours(moi.id) : null;
   const el = ctx.rendre(`
   <div class="entete"><h1>La voie</h1><div class="aide" style="font-size:14px">Mortagne-sur-Sèvre → Les Herbiers · 22 km</div></div>
   <div class="page" style="padding-top:8px">
     ${active ? `<a class="btn grand" href="#/tournee" style="background:var(--orange)">${icone('voie')}Reprendre la tournée en cours</a>`
-      : peutSignaler(moi) ? `<a class="btn grand" href="#/tournee">${icone('voie')}Démarrer une tournée d'inspection</a>` : ''}
+      : peutInspecter(moi) ? `<a class="btn grand" href="#/tournee">${icone('voie')}Démarrer une tournée d'inspection</a>` : ''}
     ${peutSignaler(moi) ? `<a class="btn second" href="#/signaler?cible=voie">${icone('plus', 20)}Signaler un problème ponctuel</a>` : ''}
     ${releve ? `<a class="carte pad lien-carte" href="#/releve"><b>${icone('pin', 20)} Configuration de la voie : relevé des repères PK</b>
-      <span class="aide">Réservé aux administrateurs. À faire une fois, sur le terrain, pour le plan et le calcul automatique du PK.</span></a>` : ''}
+      <span class="aide">Réservé aux référents voie et aux administrateurs. À faire une fois, sur le terrain, pour le plan et le calcul automatique du PK.</span></a>` : ''}
     <div class="bandeau">Le plan interactif de la ligne arrivera une fois les repères PK relevés. En attendant, les problèmes sont classés par point kilométrique.</div>
     <div class="segments" role="group" aria-label="Affichage">
       <button type="button" data-r="0">À traiter</button><button type="button" data-r="1">Tout l'historique</button>

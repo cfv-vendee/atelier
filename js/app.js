@@ -1,6 +1,6 @@
 // Démarrage, navigation entre écrans et session.
 import { CONFIG } from './config.js';
-import { esc, icone, toast } from './ui.js';
+import { esc, icone, toast, peutInspecter } from './ui.js';
 import { creerEnvois } from './envois.js';
 
 // Lien reçu par e-mail (invitation ou mot de passe oublié) : à lire avant que la session ne l'efface.
@@ -30,7 +30,7 @@ const ROUTES = {
   admin: { vue: () => import('./views/admin.js'), onglet: 'profil', admin: true },
   etiquettes: { vue: () => import('./views/etiquettes.js') },
   tournee: { vue: () => import('./views/tournee.js') },
-  releve: { vue: () => import('./views/releve.js'), admin: true },
+  releve: { vue: () => import('./views/releve.js'), inspecteur: true },
 };
 const ONGLETS = [['accueil', 'Accueil'], ['materiel', 'Matériel'], ['voie', 'Voie'], ['profil', 'Profil']];
 
@@ -84,6 +84,7 @@ async function router() {
 
   const route = ROUTES[nom] || ROUTES.accueil;
   if (route.admin && !moi.est_admin) return aller('profil');
+  if (route.inspecteur && !peutInspecter(moi)) return aller('voie');
   afficherNav(route.onglet);
   vueEl.className = route.onglet ? '' : 'sans-nav';
   vueEl.innerHTML = '<div class="chargement">Chargement…</div>';

@@ -2,11 +2,11 @@
 // Sert aux essais et à la présentation, tant que la base n'est pas branchée.
 import { PARC } from '../data/parc.js';
 
-const CLE = 'cfv-atelier-demo-v1';
+const CLE = 'cfv-atelier-demo-v2';
 const MEMBRES = [
   { id: 'm-admin', prenom: 'Benjamin', nom: 'Duchesne', email: 'president@exemple.fr', role: 'conducteur_technicien', est_admin: true, actif: true },
   { id: 'm-ct', prenom: 'Malo', nom: 'Degois', email: 'malo@exemple.fr', role: 'conducteur_technicien', est_admin: false, actif: true },
-  { id: 'm-tech', prenom: 'Bernard', nom: 'L.', email: 'tech@exemple.fr', role: 'technicien', est_admin: false, actif: true },
+  { id: 'm-tech', prenom: 'Bernard', nom: 'L.', email: 'tech@exemple.fr', role: 'technicien', est_admin: false, referent_voie: true, actif: true },
   { id: 'm-cond', prenom: 'Sophie', nom: 'M.', email: 'cond@exemple.fr', role: 'conducteur', est_admin: false, actif: true },
   { id: 'm-bur', prenom: 'Claire', nom: 'T.', email: 'bureau@exemple.fr', role: 'bureau', est_admin: false, actif: true },
 ];
@@ -66,6 +66,7 @@ export function creerApi() {
   const exiger = (ok) => { if (!ok) throw new Error("Vous n'avez pas les droits pour faire cela."); };
   const peutSignaler = (m) => m?.actif && (m.role !== 'bureau' || m.est_admin);
   const peutReparer = (m) => m?.actif && (['conducteur_technicien', 'technicien'].includes(m.role) || m.est_admin);
+  const peutInspecter = (m) => m?.actif && (m.referent_voie || m.est_admin);
   const personne = (id) => { const m = d.membres.find((x) => x.id === id); return m ? { prenom: m.prenom, nom: m.nom, role: m.role } : null; };
   const enrichir = (p) => {
     const e = d.engins.find((x) => x.id === p.engin_id);
@@ -131,9 +132,10 @@ export function creerApi() {
       return id;
     },
     async ajouterEvenement(panneId, type, texte, fichiers = [], options = {}) {
-      exiger(type === 'commentaire' ? peutSignaler(moi()) : peutReparer(moi()));
       if (options.id && d.evenements.some((e) => e.id === options.id)) return;   // déjà envoyé
-      if (!d.pannes.some((p) => p.id === panneId)) throw new Error('Panne introuvable.');
+      const cible = d.pannes.find((p) => p.id === panneId);
+      if (!cible) throw new Error('Panne introuvable.');
+      exiger(cible.cible === 'voie' ? peutInspecter(moi()) : type === 'commentaire' ? peutSignaler(moi()) : peutReparer(moi()));
       const ev = ajouterEvt(d, panneId, moi().id, type, texte, options.created_at);
       if (options.id) ev.id = options.id;
       for (const f of fichiers) d.photos.push({ id: uid(), panne_id: panneId, evenement_id: ev.id, donnees: await lireFichier(f) });
@@ -141,7 +143,7 @@ export function creerApi() {
     },
 
     async demarrerTournee(donnees, { id } = {}) {
-      exiger(peutSignaler(moi()));
+      exiger(peutInspecter(moi()));
       d.tournees ??= [];
       if (d.tournees.some((t) => t.id === id)) return;
       d.tournees.push({ id: id || uid(), auteur_id: moi().id, participants: null, fin: null, sections_vues: [], sections_non_vues: [], notes: [], statut: 'en_cours', ...donnees });
@@ -167,7 +169,7 @@ export function creerApi() {
         .map((r) => ({ ...r, url: r.donnees || null, auteur: personne(r.auteur_id) }));
     },
     async ajouterRepere(donnees, fichier, { id, created_at } = {}) {
-      exiger(moi()?.est_admin);
+      exiger(peutInspecter(moi()));
       d.reperes ??= [];
       const rid = id || uid();
       if (d.reperes.some((r) => r.id === rid)) return rid;   // déjà envoyé
@@ -178,14 +180,14 @@ export function creerApi() {
       return rid;
     },
     async majRepere(id, champs) {
-      exiger(moi()?.est_admin);
+      exiger(peutInspecter(moi()));
       const r = (d.reperes || []).find((x) => x.id === id);
       if (!r) throw new Error('Repère introuvable.');
       Object.assign(r, champs); sauver();
     },
-    async supprimerRepere(id) { exiger(moi()?.est_admin); d.reperes = (d.reperes || []).filter((r) => r.id !== id); sauver(); },
+    async supprimerRepere(id) { exiger(peutInspecter(moi())); d.reperes = (d.reperes || []).filter((r) => r.id !== id); sauver(); },
     async parametres() { return { ...(d.parametres || {}) }; },
-    async majParametre(cle, valeur) { exiger(moi()?.est_admin); d.parametres = { ...(d.parametres || {}), [cle]: valeur }; sauver(); },
+    async majParametre(cle, valeur) { exiger(moi()?.est_admin || (cle === 'voie_configuree' && peutInspecter(moi()))); d.parametres = { ...(d.parametres || {}), [cle]: valeur }; sauver(); },
 
     async membres() { return d.membres.map((m) => ({ ...m })); },
     async majMembre(id, champs) {
@@ -213,7 +215,7 @@ export function creerApi() {
       if (corps.action === 'inviter') {
         if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(corps.email || '')) throw new Error('Adresse e-mail invalide.');
         if (d.membres.some((m) => m.email === corps.email)) throw new Error('Un compte existe déjà avec cette adresse.');
-        d.membres.push({ id: uid(), prenom: corps.prenom, nom: corps.nom, email: corps.email, telephone: corps.telephone || null, role: corps.role, est_admin: !!corps.est_admin, actif: true });
+        d.membres.push({ id: uid(), prenom: corps.prenom, nom: corps.nom, email: corps.email, telephone: corps.telephone || null, role: corps.role, est_admin: !!corps.est_admin, referent_voie: !!corps.referent_voie, actif: true });
       } else {
         if (corps.id === moi().id) throw new Error('Vous ne pouvez pas retirer votre propre accès.');
         d.membres.find((m) => m.id === corps.id).actif = corps.action === 'retablir';

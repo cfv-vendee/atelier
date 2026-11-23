@@ -1,5 +1,5 @@
 import { esc, icone, pastille, GRAVITES, STATUTS, EVENEMENTS, ROLES, ELEMENTS, quand, numPanne, nomEngin, nomPersonne, formatPk,
-  peutSignaler, peutReparer, feuille, toast, champPhotos, brancherPhotos } from '../ui.js';
+  droitsPanne, feuille, toast, champPhotos, brancherPhotos } from '../ui.js';
 
 const ACTIONS = {
   commentaire: { titre: 'Ajouter un commentaire', bouton: 'Ajouter', aide: 'Précisez, signalez une aggravation, ajoutez une photo…', requis: false },
@@ -23,16 +23,19 @@ export async function afficher(ctx) {
   const grille = (l) => (l.length ? `<div class="photos">${l.map((x) => `<a href="${esc(x.url || '#')}" target="_blank" rel="noopener"><img src="${esc(x.url || '')}" alt="Photo jointe" loading="lazy"></a>`).join('')}</div>` : '');
 
   let actions = '';
-  if (peutReparer(moi)) {
+  const droits = droitsPanne(moi, p);
+  if (droits === 'tout') {
     actions = p.statut === 'reparee'
-      ? `<button class="btn neutre plein" data-action="reouverte">Rouvrir la panne</button>`
+      ? `<button class="btn neutre plein" data-action="reouverte">Rouvrir ${p.cible === 'voie' ? 'le problème' : 'la panne'}</button>`
       : `${p.statut === 'ouverte' ? '<button class="btn second plein" data-action="prise_en_charge">Prendre en charge</button>' : ''}
          <div class="btns"><button class="btn second" data-action="intervention">Ajouter une intervention</button>
          <button class="btn" data-action="reparee">Marquer réparée</button></div>`;
     actions += `<button class="lien" data-action="commentaire" style="align-self:center">Ajouter un commentaire ou une photo</button>`;
-  } else if (peutSignaler(moi)) {
+  } else if (droits === 'commenter') {
     actions = `<button class="btn neutre plein" data-action="commentaire">Ajouter un commentaire ou une photo</button>
       <p class="aide" style="text-align:center;margin:0">Profil conducteur : la réparation est réservée aux techniciens.</p>`;
+  } else if (p.cible === 'voie' && moi.role !== 'bureau') {
+    actions = `<p class="aide" style="text-align:center;margin:0">Le traitement des problèmes de voie est réservé aux référents voie. Vous pouvez suivre son état ici.</p>`;
   } else {
     actions = `<p class="aide" style="text-align:center;margin:0">Profil Bureau : consultation uniquement.</p>`;
   }

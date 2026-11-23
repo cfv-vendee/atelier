@@ -48,6 +48,13 @@ export const EVENEMENTS = {
 
 export const peutSignaler = (me) => !!me?.actif && (me.role !== 'bureau' || me.est_admin);
 export const peutReparer = (me) => !!me?.actif && (['conducteur_technicien', 'technicien'].includes(me.role) || me.est_admin);
+// Référent voie (droit en plus du rôle) ou administrateur : tournées, configuration de la voie, traitement des problèmes de voie.
+export const peutInspecter = (me) => !!me?.actif && (!!me.referent_voie || !!me.est_admin);
+// Ce qu'un membre peut faire sur une panne : 'tout' (traiter), 'commenter' ou rien.
+export function droitsPanne(me, p) {
+  if (p.cible === 'voie') return peutInspecter(me) ? 'tout' : null;
+  return peutReparer(me) ? 'tout' : peutSignaler(me) ? 'commenter' : null;
+}
 
 export const numPanne = (p) => `${p.annee}-${String(p.numero).padStart(3, '0')}`;
 export const nomEngin = (e) => (e ? `${e.designation}${e.surnom ? ` « ${e.surnom} »` : ''}` : '');

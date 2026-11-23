@@ -8,7 +8,7 @@ const RESEAU = /Failed to fetch|Load failed|NetworkError|network ?error|fetch fa
 const exigerId = (id, quoi) => { if (!UUID.test(id || '')) throw new Error(`${quoi} introuvable. Le lien ou le QR code ne correspond à rien dans l'appli du CFV.`); };
 const PANNE_COLS = '*, engin:engins(id, designation, surnom), auteur:profils!pannes_auteur_id_fkey(prenom, nom), technicien:profils!pannes_pris_par_fkey(prenom, nom)';
 const PREFIXE_CACHE = 'cfv-cache:';
-const PROFIL_COLS = 'id, prenom, nom, role, est_admin, actif, created_at';
+const PROFIL_COLS = 'id, prenom, nom, role, est_admin, referent_voie, actif, created_at';
 
 function erreur(message, code) {
   const e = new Error(traduire(message));

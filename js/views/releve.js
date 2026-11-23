@@ -1,7 +1,7 @@
-// Relevé des repères PK sur le terrain (configuration du module Voie, réservé aux administrateurs).
+// Relevé des repères PK sur le terrain (configuration du module Voie, réservé aux référents voie et aux administrateurs).
 // Au repère, la position est mesurée pendant 15 s puis moyennée. Sans réseau, le relevé est gardé
 // dans le téléphone et envoyé au retour du réseau. L'écran disparaît une fois la configuration terminée.
-import { esc, icone, formatPk, feuille, toast, quand, nomPersonne } from '../ui.js';
+import { esc, icone, formatPk, feuille, toast, quand, nomPersonne, peutInspecter } from '../ui.js';
 
 export const TYPES_REPERE = {
   borne_km: { label: 'Borne km', court: 'km', pk: true, aide: 'Le nombre écrit sur la borne' },
@@ -124,8 +124,8 @@ export async function afficher(ctx) {
   const { api, moi, envois } = ctx;
   mesureurActif?.couper(); mesureurActif = null;
   const barre = `<div class="barre"><a class="retour" href="#/voie" data-retour aria-label="Retour à la voie">${icone('retour')}</a><h1>Relevé des repères</h1></div>`;
-  if (!moi.est_admin) {
-    ctx.rendre(`${barre}<div class="page"><div class="bandeau">Le relevé des repères de la voie est réservé aux administrateurs.</div></div>`);
+  if (!peutInspecter(moi)) {
+    ctx.rendre(`${barre}<div class="page"><div class="bandeau">Le relevé des repères de la voie est réservé aux référents voie et aux administrateurs.</div></div>`);
     return;
   }
   const [serveur, params, enAttente] = await Promise.all([api.reperes(), api.parametres().catch(() => ({})), envois.lister().catch(() => [])]);
@@ -195,7 +195,7 @@ export async function afficher(ctx) {
     ${tous.length ? `<button class="btn second plein" id="csv">Télécharger le tableau (CSV)</button>` : ''}
 
     <div class="carte pad"><b>Tous les repères sont relevés ?</b>
-      <p class="aide">Terminer la configuration retire cet écran de l'onglet Voie. Il reste possible de le rouvrir depuis Profil → Administration.</p>
+      <p class="aide">Terminer la configuration retire cet écran de l'onglet Voie. Un administrateur pourra le rouvrir depuis Profil → Administration si besoin.</p>
       <button class="btn danger plein" id="terminer">Terminer la configuration de la voie</button></div>
   </div>`);
   if (!el) return;

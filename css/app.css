@@ -251,3 +251,4 @@ textarea.saisie { resize: vertical; min-height: 96px; }
 .infos dt { color: var(--gris); font-weight: 600; } .infos dd { margin: 0; overflow-wrap: anywhere; }
 .lien-carte { display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: var(--encre); border-color: var(--vert); }
 .lien-carte b { display: flex; align-items: center; gap: 8px; color: var(--vert); }
+.voie-ref { color: #fff; background: #5B4A1D; }

@@ -1,6 +1,6 @@
 // Tournée d'inspection de la voie : démarrage, suivi PK par PK, défauts, compte rendu.
 // La tournée en cours est gardée dans le téléphone : elle survit à une coupure de réseau ou à la fermeture de l'appli.
-import { esc, icone, pastille, GRAVITES, ELEMENTS, formatPk, feuille, toast, champPhotos, brancherPhotos, peutSignaler } from '../ui.js';
+import { esc, icone, pastille, GRAVITES, ELEMENTS, formatPk, feuille, toast, champPhotos, brancherPhotos, peutInspecter } from '../ui.js';
 import { lignePanne } from './accueil.js';
 
 // ───── État local de la tournée en cours ─────
@@ -71,7 +71,7 @@ const lirePk = (v) => { const n = Number(String(v).trim().replace(',', '.')); re
 // ───── Écran ─────
 export async function afficher(ctx) {
   if (ctx.params[0]) return compteRendu(ctx, ctx.params[0]);
-  if (!peutSignaler(ctx.moi)) return ctx.aller('voie');
+  if (!peutInspecter(ctx.moi)) return ctx.aller('voie');
   const t = tourneeEnCours(ctx.moi.id);
   return t ? enCours(ctx, t) : demarrage(ctx);
 }
