@@ -14,7 +14,12 @@ Actions mises de côté le 23/11/2026, à reprendre quand ce sera possible.
 - [ ] Ensuite : modèles d'e-mails en français (invitation, mot de passe oublié) — Claude fournit les textes
 
 ## Données de l'association
-- [ ] Repères de la voie avec leurs PK : gares, PN numérotés, aiguillages, viaducs/ponts, bornes kilométriques (pour le plan et le calcul du PK par GPS)
+- [ ] Mise en route du module Voie (plan + calcul automatique du PK par GPS) — suivre la notice « Module Voie — notice de mise en route » (https://claude.ai/artifact/VRqfoi2Gqhnt3CC6q6pJL6) :
+  - [ ] Choisir avec le président la référence des PK (PK des bornes SNCF ou PK 0 à Mortagne) et le sens
+  - [ ] Vérifier le tracé de la ligne préparé par Claude (début/fin, voies annexes)
+  - [ ] Relever à la main sur le terrain les repères PK (une borne par km + extrémités) : PK, latitude, longitude, précision, photo
+  - [ ] Relever les points remarquables : gares, PN numérotés, ponts/viaducs, aiguillages, heurtoirs, zones sans réseau
+  - [ ] Envoyer le tableau rempli + photos à Claude, puis contrôle sur le terrain (écart < 20 m)
 - [ ] Numéros réels des 7 boîtes à tonnerre et du fourgon B3Dt (modifiables dans l'appli : fiche engin → « Modifier la fiche »)
 - [ ] Vérifier la fiche du Y 7303 (deux descriptions différentes)
 - [ ] Une photo de chaque engin
