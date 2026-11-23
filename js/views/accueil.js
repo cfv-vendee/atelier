@@ -33,7 +33,7 @@ export async function afficher(ctx) {
       <div class="ligne">
         <span class="code orange" aria-hidden="true">${icone('envoi', 22)}</span>
         <span class="txt"><span class="t">${esc(it.resume || 'Envoi')}</span>
-          <span class="m">${it.type === 'panne' ? 'Signalement' : 'Mise à jour'} · fait ${esc(quand(it.cree))}${it.fichiers?.length ? ` · ${it.fichiers.length} photo${it.fichiers.length > 1 ? 's' : ''}` : ''}</span>
+          <span class="m">${it.type === 'panne' ? 'Signalement' : it.type === 'repere' ? 'Repère de voie' : 'Mise à jour'} · fait ${esc(quand(it.cree))}${it.fichiers?.length ? ` · ${it.fichiers.length} photo${it.fichiers.length > 1 ? 's' : ''}` : ''}</span>
           ${it.erreur ? `<span class="erreur" style="font-size:13px">Refusé : ${esc(it.erreur)}</span>` : ''}</span>
         ${it.erreur ? `<button class="btn danger" style="min-height:44px;padding:0 12px;font-size:14px" data-retirer="${esc(it.id)}">Supprimer</button>` : ''}
       </div>`).join('')}

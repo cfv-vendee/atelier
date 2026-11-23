@@ -166,7 +166,7 @@ textarea.saisie { resize: vertical; min-height: 96px; }
 
 /* Étiquettes QR */
 .planche { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
-.etiquette { display: flex; align-items: center; gap: 4mm; padding: 4mm; background: #fff; border: 1px dashed var(--bord-champ); border-radius: 12px; }
+.etq-carte { display: flex; align-items: center; gap: 4mm; padding: 4mm; background: #fff; border: 1px dashed var(--bord-champ); border-radius: 12px; }
 .etq-qr { width: 38mm; flex: none; }
 .etq-qr svg { display: block; width: 100%; height: auto; }
 .etq-infos { display: flex; flex-direction: column; gap: 1.5mm; min-width: 0; }
@@ -185,7 +185,7 @@ textarea.saisie { resize: vertical; min-height: 96px; }
   #app { max-width: none; }
   #vue, .page { padding: 0 !important; }
   .planche { grid-template-columns: repeat(2, 90mm); gap: 5mm; justify-content: center; }
-  .etiquette { width: 90mm; height: 52mm; border: 0.3mm dashed #999; border-radius: 3mm; break-inside: avoid; }
+  .etq-carte { width: 90mm; height: 52mm; border: 0.3mm dashed #999; border-radius: 3mm; break-inside: avoid; }
   .etq-infos span, .etq-infos small { color: #333; }
 }
 
@@ -239,3 +239,15 @@ textarea.saisie { resize: vertical; min-height: 96px; }
   .compte-rendu .stat, .compte-rendu .carte { break-inside: avoid; }
   .regle-vu, .regle-nv, .regle-defaut, .stat.alerte { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+
+/* Relevé des repères de la voie */
+.liste button.ligne { width: 100%; background: none; border: 0; border-bottom: 1px solid #EEF0F2; text-align: left; cursor: pointer; font: inherit; }
+.liste button.ligne:last-child { border-bottom: 0; }
+.liste button.ligne:disabled { cursor: default; color: var(--encre); }
+.gps-etat .pastille { font-size: 14px; }
+.jauge { height: 10px; border-radius: 5px; background: #E9EBEE; overflow: hidden; }
+.jauge span { display: block; height: 100%; background: var(--vert); transition: width .25s linear; }
+.infos { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; margin: 0; font-size: 15px; }
+.infos dt { color: var(--gris); font-weight: 600; } .infos dd { margin: 0; overflow-wrap: anywhere; }
+.lien-carte { display: flex; flex-direction: column; gap: 4px; text-decoration: none; color: var(--encre); border-color: var(--vert); }
+.lien-carte b { display: flex; align-items: center; gap: 8px; color: var(--vert); }

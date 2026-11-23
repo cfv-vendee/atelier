@@ -1,4 +1,5 @@
-import { esc, icone, ROLES, feuille, toast } from '../ui.js';
+import { esc, icone, ROLES, feuille, toast, quand } from '../ui.js';
+import { voieConfiguree } from './releve.js';
 
 const DROITS = [
   ['Tout consulter, exporter', [1, 1, 1, 1, 1]],
@@ -9,13 +10,18 @@ const DROITS = [
 
 export async function afficher(ctx) {
   const { api, moi } = ctx;
-  const membres = await api.membres();
+  const [membres, params] = await Promise.all([api.membres(), api.parametres().catch(() => ({}))]);
+  const voieOk = voieConfiguree(params);
   const el = ctx.rendre(`
   <div class="barre"><a class="retour" href="#/profil" data-retour aria-label="Retour au profil">${icone('retour')}</a><h1>Administration</h1>
     <span class="pastille admin">Admin</span></div>
   <div class="page">
     <button class="btn" id="ajouter">${icone('plus', 20)}Ajouter un membre</button>
     <a class="btn second" href="#/etiquettes">${icone('qr', 20)}Étiquettes QR à imprimer</a>
+    ${voieOk ? `<div class="carte pad"><b>Configuration de la voie terminée</b>${params.voie_configuree.le ? ` <span class="aide">(${esc(quand(params.voie_configuree.le))})</span>` : ''}
+      <p class="aide" style="margin:6px 0 10px">Le relevé des repères n'apparaît plus dans l'onglet Voie.</p>
+      <button class="btn neutre plein" id="rouvrir-voie">Rouvrir le relevé des repères</button></div>`
+      : `<a class="btn second" href="#/releve">${icone('pin', 20)}Relevé des repères de la voie</a>`}
     <h2 class="titre-section">Membres (${membres.filter((m) => m.actif).length} actifs)</h2>
     <div class="carte liste">${membres.map((m) => `
       <button class="ligne" data-id="${m.id}" style="width:100%;background:none;border:0;border-bottom:1px solid #EEF0F2;text-align:left;cursor:pointer;${m.actif ? '' : 'opacity:.6'}">
@@ -35,6 +41,10 @@ export async function afficher(ctx) {
   if (!el) return;
 
   el.querySelector('#ajouter').onclick = () => formulaire(ctx, null);
+  el.querySelector('#rouvrir-voie')?.addEventListener('click', async () => {
+    try { await api.majParametre('voie_configuree', { termine: false }); ctx.aller('releve'); }
+    catch (e) { toast(e.message); }
+  });
   el.querySelectorAll('[data-id]').forEach((b) => (b.onclick = () => formulaire(ctx, membres.find((m) => m.id === b.dataset.id))));
 }
 

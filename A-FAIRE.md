@@ -17,9 +17,10 @@ Actions mises de côté le 23/11/2026, à reprendre quand ce sera possible.
 - [ ] Mise en route du module Voie (plan + calcul automatique du PK par GPS) — suivre la notice « Module Voie — notice de mise en route » (https://claude.ai/artifact/VRqfoi2Gqhnt3CC6q6pJL6) :
   - [ ] Choisir avec le président la référence des PK (PK des bornes SNCF ou PK 0 à Mortagne) et le sens
   - [ ] Vérifier le tracé de la ligne préparé par Claude (début/fin, voies annexes)
-  - [ ] Relever à la main sur le terrain les repères PK (une borne par km + extrémités) : PK, latitude, longitude, précision, photo
+  - [ ] Relever sur le terrain les repères PK (une borne par km + extrémités) avec l'écran *Voie → Configuration de la voie : relevé des repères PK* (ou à la main : PK, latitude, longitude, précision, photo)
   - [ ] Relever les points remarquables : gares, PN numérotés, ponts/viaducs, aiguillages, heurtoirs, zones sans réseau
-  - [ ] Envoyer le tableau rempli + photos à Claude, puis contrôle sur le terrain (écart < 20 m)
+  - [ ] Prévenir Claude quand le relevé est fini (il lit les repères directement dans la base), puis contrôle sur le terrain (écart < 20 m)
+  - [ ] Quand tout est bon : « Terminer la configuration de la voie » (l'écran de relevé disparaît)
 - [ ] Numéros réels des 7 boîtes à tonnerre et du fourgon B3Dt (modifiables dans l'appli : fiche engin → « Modifier la fiche »)
 - [ ] Vérifier la fiche du Y 7303 (deux descriptions différentes)
 - [ ] Une photo de chaque engin

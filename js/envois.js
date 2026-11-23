@@ -48,6 +48,7 @@ export function creerEnvois(api, moiId) {
   async function envoyer(item) {
     if (item.type === 'tournee') return api.demarrerTournee(item.donnees, { id: item.tourneeId });
     if (item.type === 'tournee_fin') return api.terminerTournee(item.tourneeId, item.donnees);
+    if (item.type === 'repere') return api.ajouterRepere(item.donnees, item.fichiers[0], { id: item.repereId, created_at: item.cree, photoId: item.photosIds[0] });
     const options = { id: item.type === 'panne' ? item.panneId : item.evId, created_at: item.cree, photosIds: item.photosIds };
     if (item.type === 'panne') await api.signaler(item.donnees, item.fichiers, options);
     else await api.ajouterEvenement(item.panneId, item.typeEv, item.texte, item.fichiers, options);

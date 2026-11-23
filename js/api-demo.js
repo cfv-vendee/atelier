@@ -162,6 +162,31 @@ export function creerApi() {
       if (!t) throw new Error('Tournée introuvable.');
       return { ...t, auteur: personne(t.auteur_id), pannes: d.pannes.filter((p) => p.tournee_id === id).map(enrichir) };
     },
+    async reperes() {
+      return [...(d.reperes || [])].sort((a, b) => a.created_at.localeCompare(b.created_at))
+        .map((r) => ({ ...r, url: r.donnees || null, auteur: personne(r.auteur_id) }));
+    },
+    async ajouterRepere(donnees, fichier, { id, created_at } = {}) {
+      exiger(moi()?.est_admin);
+      d.reperes ??= [];
+      const rid = id || uid();
+      if (d.reperes.some((r) => r.id === rid)) return rid;   // déjà envoyé
+      d.reperes.push({ nom: null, pk: null, precision_m: null, nb_mesures: null, cote: null, remarque: null, ...donnees,
+        id: rid, photo: fichier ? `${rid}/photo.jpg` : null, donnees: fichier ? await lireFichier(fichier) : null,
+        auteur_id: moi().id, created_at: created_at || new Date().toISOString() });
+      sauver();
+      return rid;
+    },
+    async majRepere(id, champs) {
+      exiger(moi()?.est_admin);
+      const r = (d.reperes || []).find((x) => x.id === id);
+      if (!r) throw new Error('Repère introuvable.');
+      Object.assign(r, champs); sauver();
+    },
+    async supprimerRepere(id) { exiger(moi()?.est_admin); d.reperes = (d.reperes || []).filter((r) => r.id !== id); sauver(); },
+    async parametres() { return { ...(d.parametres || {}) }; },
+    async majParametre(cle, valeur) { exiger(moi()?.est_admin); d.parametres = { ...(d.parametres || {}), [cle]: valeur }; sauver(); },
+
     async membres() { return d.membres.map((m) => ({ ...m })); },
     async majMembre(id, champs) {
       exiger(moi()?.est_admin);

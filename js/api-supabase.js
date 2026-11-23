@@ -164,6 +164,49 @@ export function creerApi({ url, cle }) {
         return { ...t, pannes };
       });
     },
+    // Repères PK relevés sur le terrain (configuration du module Voie).
+    async reperes() {
+      return avecCache('reperes', async () => {
+        const l = verif(await sb.from('reperes').select('*, auteur:profils(prenom, nom)').order('created_at'));
+        const avecPhoto = l.filter((r) => r.photo);
+        if (avecPhoto.length) {
+          const signes = verif(await sb.storage.from('photos').createSignedUrls(avecPhoto.map((r) => r.photo), 3600));
+          avecPhoto.forEach((r, i) => { r.url = signes[i]?.signedUrl; });
+        }
+        return l;
+      });
+    },
+    async ajouterRepere(donnees, fichier, { id, created_at, photoId } = {}) {
+      const uid = await monId();
+      const repereId = id || crypto.randomUUID();
+      let photo = null;
+      if (fichier) {
+        photo = `${repereId}/${photoId || crypto.randomUUID()}.jpg`;
+        const blob = fichier.name === 'cfv-compressee.jpg' ? fichier : await compresser(fichier);
+        const up = await sb.storage.from('photos').upload(photo, blob, { contentType: 'image/jpeg' });
+        if (up.error && !dejaFait(up.error)) throw erreur(up.error.message);
+      }
+      const { error } = await sb.from('reperes').insert({ ...donnees, id: repereId, photo, auteur_id: uid, ...(created_at ? { created_at } : {}) });
+      if (error && !dejaFait(error)) throw erreur(error.message, error.code);
+      return repereId;
+    },
+    async majRepere(id, champs) { exigerId(id, 'Repère'); verif(await sb.from('reperes').update(champs).eq('id', id)); },
+    async supprimerRepere(id) {
+      exigerId(id, 'Repère');
+      const r = verif(await sb.from('reperes').select('photo').eq('id', id).maybeSingle());
+      if (r?.photo) verif(await sb.storage.from('photos').remove([r.photo]));
+      verif(await sb.from('reperes').delete().eq('id', id));
+    },
+    // Paramètres de l'appli : { cle: valeur, … }
+    async parametres() {
+      return avecCache('parametres', async () => Object.fromEntries((verif(await sb.from('parametres').select('cle, valeur, updated_at')) || [])
+        .map((p) => [p.cle, p.valeur])));
+    },
+    async majParametre(cle, valeur) {
+      verif(await sb.from('parametres').upsert({ cle, valeur }, { onConflict: 'cle' }));
+      cache.ecrire('parametres', { ...(cache.lire('parametres') || {}), [cle]: valeur });
+    },
+
     async membres() {
       return avecCache('membres', async () => {
         const liste = verif(await sb.from('profils').select(PROFIL_COLS).order('actif', { ascending: false }).order('nom'));

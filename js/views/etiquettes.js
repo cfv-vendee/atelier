@@ -5,7 +5,7 @@ import { lienEngin } from '../scanner.js';
 const FILTRES = [['tout', 'Tout'], ['vapeur', 'Vapeur'], ['diesel', 'Diesel'], ['loco', 'Locotracteurs'], ['autorail', 'Autorails'], ['voiture', 'Voitures']];
 
 export const etiquette = (e) => `
-  <div class="etiquette">
+  <div class="etq-carte">
     <div class="etq-qr">${qrSvg(lienEngin(e.id), { niveau: 'Q', titre: 'QR code ' + nomEngin(e) })}</div>
     <div class="etq-infos">
       <div class="etq-tete"><img src="img/logo.png" alt="">CFV Atelier</div>
