@@ -5,8 +5,29 @@ import { esc, toast } from './ui.js';
 const SORTIE = 400;     // côté de l'image finale, en pixels
 const ZOOM_MAX = 5;
 
+// Styles de l'écran, ajoutés par le script lui-même : il s'affiche correctement même si le téléphone
+// a encore une ancienne feuille de style en mémoire.
+const STYLES = `.recadrage { position: fixed; inset: 0; z-index: 70; background: #0E1013; color: #fff; display: flex; flex-direction: column; align-items: center;
+  justify-content: center; gap: 16px; padding: max(20px, env(safe-area-inset-top)) 20px max(20px, env(safe-area-inset-bottom)); }
+.recadrage-titre { margin: 0; font-size: 20px; font-weight: 800; }
+.recadrage-aide { margin: -8px 0 0; font-size: 14px; color: #C9CED5; text-align: center; }
+.recadrage-cadre { position: relative; width: min(86vw, 360px); aspect-ratio: 1; overflow: hidden; touch-action: none; cursor: grab; border-radius: 4px; }
+.recadrage-cadre img { position: absolute; left: 0; top: 0; max-width: none; user-select: none; -webkit-user-select: none; pointer-events: none; }
+.recadrage-rond { position: absolute; inset: 0; border-radius: 50%; box-shadow: 0 0 0 999px rgba(14, 16, 19, .62); border: 2px solid rgba(255,255,255,.9); pointer-events: none; }
+.recadrage-zoom { display: flex; align-items: center; gap: 12px; width: min(86vw, 360px); font-size: 22px; font-weight: 700; }
+.recadrage-zoom input { flex: 1; accent-color: #8FC2A8; height: 32px; }
+.recadrage .btns { width: min(86vw, 360px); }
+.recadrage .btn.neutre { background: transparent; color: #fff; border-color: #5A616B; }`;
+function ajouterStyles() {
+  if (document.getElementById('styles-recadrage')) return;
+  const st = document.createElement('style');
+  st.id = 'styles-recadrage'; st.textContent = STYLES;
+  document.head.append(st);
+}
+
 export function recadrer(fichier) {
   return new Promise((resoudre) => {
+    ajouterStyles();
     const url = URL.createObjectURL(fichier);
     const el = document.createElement('div');
     el.className = 'recadrage';
@@ -51,6 +72,7 @@ export function recadrer(fichier) {
       dessiner();
     };
     img.onload = demarrer;
+    if (img.complete && img.naturalWidth) demarrer();
     img.onerror = () => fermer(null, 'Cette photo ne peut pas être ouverte.');
     const surTaille = () => { if (!w) return; const ancien = V; V = cadre.clientWidth; const r = V / ancien; x *= r; y *= r; dessiner(); };
     window.addEventListener('resize', surTaille);

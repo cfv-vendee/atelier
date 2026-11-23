@@ -73,7 +73,9 @@ export async function afficher(ctx) {
     const apercu = f.querySelector('#apercu-photo');
     // Chaque photo choisie passe par l'écran de recadrage (déplacer, zoomer dans le rond).
     const recadrerPhoto = async () => {
-      const carre = await recadrer(original);
+      let carre;
+      try { carre = await recadrer(original); }
+      catch { carre = original; }   // écran de recadrage indisponible : la photo sera centrée automatiquement
       if (!carre) return;
       photo = new File([carre], 'cfv-profil.jpg', { type: 'image/jpeg' }); retirer = false;
       apercu.innerHTML = avatar({ ...moi, photo_url: URL.createObjectURL(photo) }, 72);
