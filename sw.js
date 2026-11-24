@@ -1,6 +1,6 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
 // À faire correspondre à VERSION dans js/version.js à chaque publication.
-const VERSION = 'atelier-v1.7.8';
+const VERSION = 'atelier-v1.7.9';
 // Ajoute un paramètre propre à cette version à chaque requête vers notre propre site : ni le CDN de
 // GitHub Pages, ni la mémoire HTTP du téléphone (différente de celle qu'on gère nous-même ci-dessous)
 // n'ont jamais vu cette adresse exacte avant, donc aucun des deux ne peut la resservir depuis une
@@ -76,23 +76,24 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== location.origin) return;
   // Adresse « propre à cette version » (voir avecVersion ci-dessus) : ni le CDN devant GitHub Pages
   // ni la mémoire HTTP du téléphone ne peuvent la resservir depuis une ancienne copie.
-  // Hors connexion, le réseau peut mettre plusieurs secondes à déclarer l'échec (surtout sur iPhone) :
-  // on court-circuite au bout de 1,2 s et on sert la copie gardée sans attendre davantage, tout en
-  // laissant la requête réseau se terminer en tâche de fond pour rafraîchir le cache si elle aboutit.
+  // ignoreVary : la copie gardée a été récupérée avec cette adresse-là, ses en-têtes ne
+  // correspondent pas exactement à ceux de la demande d'origine.
+  const gardee = () => caches.match(e.request, { ignoreVary: true })
+    .then((r) => r || caches.match(e.request, { ignoreVary: true, ignoreSearch: true }));
   e.respondWith((async () => {
-    const net = fetch(avecVersion(e.request.url), { cache: 'no-cache' }).then((rep) => {
-      if (rep && rep.ok) { const copie = rep.clone(); caches.open(VERSION).then((c) => c.put(e.request, copie)); }
-      return rep;
+    // Hors connexion : la copie gardée, tout de suite. Règle nette, pas de minuteur — le résultat
+    // ne dépend plus de la vitesse du réseau, donc l'appli se comporte toujours pareil.
+    if (!navigator.onLine) {
+      const copie = await gardee();
+      if (copie) return copie;
+    }
+    const rep = await fetch(avecVersion(e.request.url), { cache: 'no-cache' }).then((r) => {
+      if (r && r.ok) { const copie = r.clone(); caches.open(VERSION).then((c) => c.put(e.request, copie)); }
+      return r;
     }).catch(() => null);
-    const rapide = await Promise.race([net, new Promise((r) => setTimeout(() => r(null), 1200))]);
-    if (rapide) return rapide;
-    // ignoreVary : la copie a été récupérée avec une adresse « propre à la version », ses en-têtes
-    // ne sont pas identiques à ceux de la demande d'origine — sans cela, la copie ne serait pas trouvée.
-    const gardee = await caches.match(e.request, { ignoreVary: true })
-      || await caches.match(e.request, { ignoreVary: true, ignoreSearch: true });
-    if (gardee) return gardee;
-    const tardive = await net;
-    if (tardive) return tardive;
+    if (rep) return rep;
+    const copie = await gardee();
+    if (copie) return copie;
     // Dernier recours pour une navigation : la page de l'appli, sinon un message clair —
     // jamais l'écran « Safari n'est pas connecté à Internet ».
     if (e.request.mode === 'navigate') {

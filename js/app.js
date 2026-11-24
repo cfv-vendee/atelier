@@ -158,12 +158,22 @@ if (sessionStorage.getItem('atelier-maj')) {
 }
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   const dejaControle = !!navigator.serviceWorker.controller;
-  let recharge = false;
-  navigator.serviceWorker.addEventListener('controllerchange', () => {
-    if (!dejaControle || recharge) return;
+  let recharge = false, majEnAttente = false;
+  // On ne recharge jamais au milieu d'une saisie : un signalement en cours, une tournée, un relevé,
+  // le scanner ou une fenêtre ouverte seraient perdus. Dans ce cas on attend le changement d'écran.
+  const momentSur = () => !document.querySelector('.voile, .scanner')
+    && !/^#\/(signaler|tournee|releve)\b/.test(location.hash);
+  function rechargerPourMaj() {
+    if (recharge) return;
+    if (!momentSur()) { majEnAttente = true; return; }
     recharge = true;
     sessionStorage.setItem('atelier-maj', '1');
     location.reload();
+  }
+  window.addEventListener('hashchange', () => { if (majEnAttente) rechargerPourMaj(); });
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!dejaControle) return;
+    rechargerPourMaj();
   });
   navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
     reg.update().catch(() => {});
