@@ -1,6 +1,6 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
 // À faire correspondre à VERSION dans js/version.js à chaque publication.
-const VERSION = 'atelier-v1.7.12';
+const VERSION = 'atelier-v1.8.0';
 // Ajoute un paramètre propre à cette version à chaque requête vers notre propre site : ni le CDN de
 // GitHub Pages, ni la mémoire HTTP du téléphone (différente de celle qu'on gère nous-même ci-dessous)
 // n'ont jamais vu cette adresse exacte avant, donc aucun des deux ne peut la resservir depuis une
@@ -18,6 +18,7 @@ const AUTRES = [
   'manifest.webmanifest', 'data/parc.js',
   'js/views/signaler.js', 'js/views/panne.js',
   'js/views/materiel.js', 'js/views/engin.js', 'js/views/voie.js', 'js/views/profil.js', 'js/views/admin.js', 'js/views/etiquettes.js', 'js/qr.js', 'js/scanner.js', 'js/views/tournee.js', 'js/views/releve.js', 'js/recadrage.js', 'js/notifications.js',
+  'js/views/exports.js', 'js/pdf.js',
   'img/logo.png', 'img/icone-192.png', 'img/icone-512.png',
 ];
 // On récupère depuis l'adresse « propre à cette version » (voir avecVersion), mais on range le

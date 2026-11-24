@@ -22,6 +22,8 @@ export async function afficher(ctx) {
     ${api.demo ? '<div class="bandeau">Mode démonstration : les données restent dans ce navigateur.</div>' : ''}
     ${moi.est_admin ? `<a class="btn grand" href="#/admin" style="justify-content:flex-start;padding:0 16px">${icone('bouclier', 22)}
       <span style="flex:1;text-align:left;display:flex;flex-direction:column"><span>Administration</span><small style="font-weight:500;opacity:.85;font-size:13px">Membres et droits</small></span>${icone('chevron', 20)}</a>` : ''}
+    <a class="btn grand neutre" href="#/exports" style="justify-content:flex-start;padding:0 16px">${icone('envoi', 22)}
+      <span style="flex:1;text-align:left;display:flex;flex-direction:column"><span>Exports</span><small style="font-weight:500;opacity:.75;font-size:13px">Rapport PDF ou tableur</small></span>${icone('chevron', 20)}</a>
     <h2 class="titre-section">Mes derniers signalements</h2>
     <div class="carte liste">${mesPannes.map(lignePanne).join('') || '<p class="vide">Vous n’avez encore rien signalé.</p>'}</div>
     <h2 class="titre-section">Notifications</h2>
