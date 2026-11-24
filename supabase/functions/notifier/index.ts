@@ -118,6 +118,31 @@ Deno.serve(async (req) => {
       return reponse({ destinataires: 1, ...r });
     }
 
+    // Relance : une panne bloquante que personne n'a prise en charge (appelee par la tache horaire).
+    if (corps.table === "relance") {
+      const { data: p } = await admin.from("pannes")
+        .select("id, cible, gravite, titre, element, pk, statut, created_at, engin:engins(designation, surnom)")
+        .eq("id", corps.id).single();
+      if (!p) return reponse({ erreur: "Panne introuvable." }, 404);
+      // Securite : on ne relance que ce qui est encore reellement bloquant et sans prise en charge.
+      if (p.gravite !== "bloquante" || p.statut !== "ouverte") return reponse({ destinataires: 0, ignore: true });
+
+      const responsable = (m: any) => m.est_admin ||
+        (p.cible === "voie" ? m.referent_voie : ["conducteur_technicien", "technicien"].includes(m.role));
+      // Ici on ne retire pas l'auteur : le but est que quelqu'un s'en empare, lui compris s'il peut agir.
+      const ids = actifs.filter((m) => responsable(m) && veut(m, "bloquantes")).map((m) => m.id);
+      const sujet = p.cible === "voie" ? `Voie · ${ELEMENTS[p.element] ?? "Voie"}${pk(p.pk)}`
+        : `${(p as any).engin?.designation ?? "Matériel"}${(p as any).engin?.surnom ? ` « ${(p as any).engin.surnom} »` : ""}`;
+      const jours = Math.max(1, Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000));
+      const depuis = jours === 1 ? "depuis hier" : `depuis ${jours} jours`;
+      const r = await prevenir(ids, {
+        titre: `⏰ Toujours personne · ${sujet}`,
+        corps: `${p.titre} — panne bloquante sans prise en charge ${depuis}`,
+        url: `#/panne/${p.id}`, tag: `relance-${p.id}`,
+      }, "high");
+      return reponse({ destinataires: ids.length, ...r });
+    }
+
     return reponse({ erreur: "Demande inconnue." }, 400);
   } catch (e) {
     return reponse({ erreur: String((e as Error)?.message ?? e) }, 500);
