@@ -128,9 +128,10 @@ function majBandeau() {
   bandeau.classList.toggle('attente', !horsLigne);
   // Le bandeau prend alors la zone de sécurité du haut à la place de .entete (voir app.css).
   document.getElementById('app').classList.toggle('hors-ligne', visible);
-  // Texte court : il tient sur une ligne, le bandeau reste bas.
+  // Textes courts : ils tiennent sur une ligne même sur les petits iPhone (375 pt),
+  // sinon le bandeau passe à deux lignes et reprend de la hauteur.
   bandeau.textContent = horsLigne
-    ? `Hors connexion${attente} · envoi au retour du réseau`
+    ? (nbEnAttente ? `Hors connexion${attente} · envoi au retour` : 'Hors connexion · envoi au retour du réseau')
     : `Envoi en cours${attente}…`;
 }
 envois.surChangement((liste) => { nbEnAttente = liste.length; majBandeau(); });
