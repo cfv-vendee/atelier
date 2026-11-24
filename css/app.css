@@ -7,7 +7,12 @@
   --ok: #146C43; --ok-fond: #E5F4EC;
   --bleu: #175CD3;
   --rayon: 14px;
-  --nav-h: 56px;
+  /* Barre du bas : hauteur de la rangée d'icônes, et marge sous elle. Comme sur EuroKink, on laisse
+     la barre d'accueil de l'iPhone empiéter un peu (16px) au lieu de réserver toute sa zone, sinon
+     la barre fait 90px de haut pour 68px utiles. Total : 6 + 44 + 18 = 68px. */
+  --nav-h: 44px;
+  --nav-pad: max(6px, calc(env(safe-area-inset-bottom) - 16px));
+  --nav-total: calc(var(--nav-h) + var(--nav-pad) + 6px);
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--encre);
   -webkit-text-size-adjust: 100%;
@@ -22,12 +27,12 @@ img { max-width: 100%; }
 .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
 #app { max-width: 640px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; }
-#vue { flex: 1; padding-bottom: calc(var(--nav-h) + env(safe-area-inset-bottom) + 16px); }
+#vue { flex: 1; padding-bottom: calc(var(--nav-total) + 16px); }
 #vue.sans-nav { padding-bottom: 24px; }
 
 /* Navigation */
 .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--blanc); border-top: 1px solid var(--bord);
-  padding-bottom: env(safe-area-inset-bottom); }
+  padding: 6px 0 var(--nav-pad); }
 .nav-in { max-width: 640px; margin: 0 auto; height: var(--nav-h); display: grid; grid-template-columns: repeat(4, 1fr); }
 .nav a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none;
   color: var(--gris); font-size: 12px; font-weight: 600; }
@@ -152,7 +157,7 @@ textarea.saisie { resize: vertical; min-height: 96px; }
 .feuille h2 { margin: 0; font-size: 19px; font-weight: 800; }
 @media (min-width: 700px) { .voile { align-items: center; } .feuille { border-radius: 20px; } }
 
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-h) + 24px + env(safe-area-inset-bottom)); z-index: 60;
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--nav-total) + 24px); z-index: 60;
   background: var(--encre); color: #fff; padding: 12px 18px; border-radius: 12px; font-weight: 600; font-size: 15px; max-width: 90vw; }
 .bandeau { background: var(--orange-fond); border: 1px solid #F5C99A; border-radius: var(--rayon); padding: 12px 14px; color: #6B2E00; font-size: 14px; }
 .chargement { padding: 40px; text-align: center; color: var(--gris); }
