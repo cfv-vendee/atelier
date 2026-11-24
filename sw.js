@@ -1,6 +1,6 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
 // À faire correspondre à VERSION dans js/version.js à chaque publication.
-const VERSION = 'atelier-v1.7.1';
+const VERSION = 'atelier-v1.7.2';
 const FICHIERS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/version.js', 'js/ui.js', 'js/api-demo.js', 'js/api-supabase.js', 'data/parc.js',

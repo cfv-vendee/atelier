@@ -41,6 +41,20 @@ export async function afficher(ctx) {
       await Promise.all(regs.map((r) => r.unregister()));
       const noms = await caches.keys();
       await Promise.all(noms.map((n) => caches.delete(n)));
+      // On réinstalle tout de suite une version neuve du service worker et on attend qu'elle prenne
+      // la main AVANT de recharger : sinon ce rechargement n'est protégé par aucun service worker un
+      // court instant, et le navigateur peut resservir une page ou un fichier gardés dans sa propre
+      // mémoire (différente de celle qu'on vient de vider), ce qui annulait l'effet du bouton.
+      if ('serviceWorker' in navigator) {
+        const reg = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
+        await new Promise((resolve) => {
+          if (reg.active) return resolve();
+          const sw = reg.installing || reg.waiting;
+          if (!sw) return resolve();
+          sw.addEventListener('statechange', () => { if (sw.state === 'activated') resolve(); });
+          setTimeout(resolve, 8000);
+        });
+      }
     } catch {}
     location.reload();
   };
