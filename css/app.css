@@ -206,9 +206,12 @@ textarea.saisie { resize: vertical; min-height: 96px; }
 /* Bandeau réseau : pastille posée franchement SOUS le flou de la barre d'état.
    Mesuré sur iPhone 16 Pro Max : ce flou (celui de la dynamic island) ne s'arrête pas à la zone de
    sécurité (62 pt), il descend jusqu'à ~97 pt en délavant progressivement ce qui s'y trouve. Un
-   bandeau posé plus haut est délavé quelle que soit sa taille. D'où la marge de 42 px sous la zone
-   de sécurité : son haut tombe à ~104 pt, hors du flou. Elle remplace celle de .entete (ci-dessous). */
-.reseau { position: relative; margin: calc(env(safe-area-inset-top) + 42px) 14px 0; padding: 6px 11px;
+   bandeau posé plus haut est délavé quelle que soit sa taille, et son texte avec. D'où la marge de
+   37 px sous la zone de sécurité : c'est le plus haut où le bandeau reste net (zone de sécurité
+   mesurée à ~49 px sur iPhone 16 Pro Max, donc un haut de bandeau vers 86 px). Mesures du bord haut
+   (écart à sa vraie couleur) : 354 à 72 pt, 94 à 82 pt, 60 à 86 pt, 36 à 92 pt, 2 à partir de 100 pt.
+   Cette marge remplace celle de .entete (voir ci-dessous). */
+.reseau { position: relative; margin: calc(env(safe-area-inset-top) + 37px) 14px 0; padding: 6px 11px;
   border-radius: 9px; background: #3F4650; color: #fff; font-size: 12px; font-weight: 600; line-height: 1.25; }
 .reseau.attente { background: var(--orange); }
 /* Zone de sécurité déjà prise par le bandeau : .entete ne la compte pas une seconde fois. */
