@@ -183,7 +183,7 @@ export function creerApi({ url, cle }) {
       exigerId(id, 'Panne');
       return avecCache('panne:' + id, async () => {
         const panne = verif(await sb.from('pannes').select(PANNE_COLS).eq('id', id).single());
-        const evenements = verif(await sb.from('evenements').select('*, auteur:profils(prenom, nom, role)').eq('panne_id', id).order('created_at', { ascending: false }));
+        const evenements = verif(await sb.from('evenements').select('*, auteur:profils(prenom, nom, role, referent_voie, est_admin)').eq('panne_id', id).order('created_at', { ascending: false }));
         const photos = verif(await sb.from('photos').select('*').eq('panne_id', id).order('created_at'));
         if (photos.length) {
           const signes = verif(await sb.storage.from('photos').createSignedUrls(photos.map((p) => p.chemin), 3600));

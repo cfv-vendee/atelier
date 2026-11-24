@@ -68,7 +68,7 @@ export function creerApi() {
   const peutSignaler = (m) => m?.actif && (m.role !== 'bureau' || m.est_admin);
   const peutReparer = (m) => m?.actif && (['conducteur_technicien', 'technicien'].includes(m.role) || m.est_admin);
   const peutInspecter = (m) => m?.actif && (m.referent_voie || m.est_admin);
-  const personne = (id) => { const m = d.membres.find((x) => x.id === id); return m ? { prenom: m.prenom, nom: m.nom, role: m.role } : null; };
+  const personne = (id) => { const m = d.membres.find((x) => x.id === id); return m ? { prenom: m.prenom, nom: m.nom, role: m.role, referent_voie: m.referent_voie, est_admin: m.est_admin } : null; };
   const enrichir = (p) => {
     const e = d.engins.find((x) => x.id === p.engin_id);
     return { ...p, engin: e ? { id: e.id, designation: e.designation, surnom: e.surnom } : null, auteur: personne(p.auteur_id), technicien: personne(p.pris_par) };

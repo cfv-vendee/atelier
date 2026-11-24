@@ -4,7 +4,15 @@
 
 const estIOS = () => /iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const estInstallee = () => window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
-const pret = async () => (await navigator.serviceWorker?.getRegistration()) || null;
+// Juste après une mise à jour, getRegistration() peut répondre avant que le nouveau service worker
+// soit prêt : on lui laisse un court instant, sinon on conclurait à tort que rien n'est activé.
+const pret = async () => {
+  if (!('serviceWorker' in navigator)) return null;
+  const deja = await navigator.serviceWorker.getRegistration().catch(() => null);
+  if (deja) return deja;
+  return Promise.race([navigator.serviceWorker.ready.catch(() => null),
+    new Promise((r) => setTimeout(() => r(null), 3000))]);
+};
 
 function cleOctets(b64) {
   const s = atob(b64.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((b64.length + 3) % 4));
@@ -70,6 +78,12 @@ export async function proposer(api, moi, { feuille, toast }) {
   dejaPropose = true;
   const e = await etat();
   if (e !== 'inactif' && e !== 'installer') return;   // déjà activées, refusées ou impossibles : on ne relance pas
+  // Autorisation déjà accordée sur ce téléphone (cas d'un abonnement perdu après une mise à jour,
+  // fréquent sur Android) : on se réinscrit sans rien demander, aucune fenêtre ne s'ouvre.
+  if (e === 'inactif' && 'Notification' in window && Notification.permission === 'granted') {
+    await activer(api).catch(() => {});
+    return;
+  }
   let plusTard = 0;
   try { plusTard = Number(localStorage.getItem(cleRappel(moi.id))) || 0; } catch { /* rien */ }
   if (plusTard && Date.now() - plusTard < RAPPEL_JOURS * 86400e3) return;

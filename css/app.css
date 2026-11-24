@@ -18,6 +18,8 @@
   -webkit-text-size-adjust: 100%;
 }
 * { box-sizing: border-box; }
+/* Pas de zoom : le double appui ne zoome plus, et le pincement est bloqué dans index.html. */
+html, body { touch-action: manipulation; }
 html, body { margin: 0; background: var(--fond); }
 body { min-height: 100dvh; font-size: 16px; line-height: 1.4; }
 a { color: var(--vert); }
@@ -47,6 +49,8 @@ img { max-width: 100%; }
 .entete { padding: 20px 18px 8px; padding-top: calc(20px + env(safe-area-inset-top)); }
 .entete h1 { margin: 0; font-size: 24px; font-weight: 800; }
 .page { padding: 16px 18px; display: flex; flex-direction: column; gap: 16px; }
+/* Groupe d'éléments dans une .page (vues à onglets) : mêmes espacements. */
+.bloc { display: flex; flex-direction: column; gap: 16px; }
 
 /* Éléments */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; padding: 0 18px;
@@ -219,7 +223,11 @@ textarea.saisie { resize: vertical; min-height: 96px; }
    mesurée à ~49 px sur iPhone 16 Pro Max, donc un haut de bandeau vers 86 px). Mesures du bord haut
    (écart à sa vraie couleur) : 354 à 72 pt, 94 à 82 pt, 60 à 86 pt, 36 à 92 pt, 2 à partir de 100 pt.
    Cette marge remplace celle de .entete (voir ci-dessous). */
-.reseau { position: relative; margin: calc(env(safe-area-inset-top) + 37px) 14px 0; padding: 6px 11px;
+/* --reseau-haut : sur iPhone, le bandeau doit descendre sous le flou progressif de la barre
+   d'état (qui déborde largement sous la Dynamic Island) ; ailleurs, la zone de sécurité suffit. */
+:root { --reseau-haut: calc(env(safe-area-inset-top) + 37px); }
+html[data-plateforme="android"], html[data-plateforme="autre"] { --reseau-haut: calc(env(safe-area-inset-top) + 6px); }
+.reseau { position: relative; margin: var(--reseau-haut) 14px 0; padding: 6px 11px;
   border-radius: 9px; background: #3F4650; color: #fff; font-size: 12px; font-weight: 600; line-height: 1.25; }
 .reseau.attente { background: var(--orange); }
 /* Zone de sécurité déjà prise par le bandeau : .entete ne la compte pas une seconde fois. */

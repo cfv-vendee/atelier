@@ -1,6 +1,6 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
 // À faire correspondre à VERSION dans js/version.js à chaque publication.
-const VERSION = 'atelier-v1.8.4';
+const VERSION = 'atelier-v1.8.5';
 // Ajoute un paramètre propre à cette version à chaque requête vers notre propre site : ni le CDN de
 // GitHub Pages, ni la mémoire HTTP du téléphone (différente de celle qu'on gère nous-même ci-dessous)
 // n'ont jamais vu cette adresse exacte avant, donc aucun des deux ne peut la resservir depuis une
@@ -19,7 +19,7 @@ const AUTRES = [
   'js/views/signaler.js', 'js/views/panne.js',
   'js/views/materiel.js', 'js/views/engin.js', 'js/views/voie.js', 'js/views/profil.js', 'js/views/admin.js', 'js/views/etiquettes.js', 'js/qr.js', 'js/scanner.js', 'js/views/tournee.js', 'js/views/releve.js', 'js/recadrage.js', 'js/notifications.js',
   'js/views/exports.js', 'js/pdf.js',
-  'img/logo.png', 'img/icone-192.png', 'img/icone-512.png',
+  'img/logo.png', 'img/icone-192.png', 'img/icone-512.png', 'img/badge-96.png',
 ];
 // On récupère depuis l'adresse « propre à cette version » (voir avecVersion), mais on range le
 // résultat sous l'adresse normale du fichier : le reste de l'appli continue de le demander sans paramètre.
@@ -132,7 +132,9 @@ self.addEventListener('push', (e) => {
   let titre = (m.titre || '').trim(), corps = m.corps || '';
   if (!titre || titre === 'CFV Atelier') { titre = corps || 'CFV Atelier'; corps = ''; }
   e.waitUntil(self.registration.showNotification(titre, {
-    body: corps, icon: 'img/icone-192.png', badge: 'img/icone-192.png',
+    // Android réduit le « badge » (petite icône de la barre d'état) à sa seule silhouette : il lui
+    // faut un PNG transparent, sinon l'icône de l'appli, opaque, s'affiche en carré noir ou blanc.
+    body: corps, icon: 'img/icone-192.png', badge: 'img/badge-96.png',
     tag: m.tag, renotify: !!m.tag, data: { url: m.url || '#/accueil' },
   }));
 });

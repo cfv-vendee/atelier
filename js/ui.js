@@ -58,6 +58,12 @@ export function droitsPanne(me, p) {
 
 export const numPanne = (p) => `${p.annee}-${String(p.numero).padStart(3, '0')}`;
 export const nomEngin = (e) => (e ? `${e.designation}${e.surnom ? ` « ${e.surnom} »` : ''}` : '');
+// Rôle d'une personne tel qu'on l'affiche à côté de son nom : « Technicien · référent voie ».
+export const roleTexte = (p) => {
+  if (!p) return '';
+  const base = ROLES[p.role]?.label.split(' ·')[0] || '';
+  return [base, p.referent_voie ? 'référent voie' : '', p.est_admin ? 'admin' : ''].filter(Boolean).join(' · ');
+};
 export const nomPersonne = (p) => (p ? `${p.prenom || ''} ${p.nom ? p.nom.charAt(0) + '.' : ''}`.trim() || 'Membre' : 'Ancien membre');
 export const formatPk = (pk) => (pk == null || pk === '' ? '' : `PK ${String(Number(pk).toFixed(3)).replace(/\.?0+$/, '').replace('.', ',')}`);
 export const sujetPanne = (p) => (p.cible === 'materiel' ? nomEngin(p.engin) : `Voie · ${ELEMENTS[p.element] || ''}${p.pk != null ? ' · ' + formatPk(p.pk) : ''}`);

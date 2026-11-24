@@ -1,4 +1,4 @@
-import { esc, icone, pastille, GRAVITES, STATUTS, EVENEMENTS, ROLES, ELEMENTS, quand, numPanne, nomEngin, nomPersonne, formatPk,
+import { esc, icone, pastille, GRAVITES, STATUTS, EVENEMENTS, ELEMENTS, quand, numPanne, nomEngin, nomPersonne, roleTexte, formatPk,
   droitsPanne, feuille, toast, champPhotos, brancherPhotos } from '../ui.js';
 
 const ACTIONS = {
@@ -56,7 +56,7 @@ export async function afficher(ctx) {
     <div><h2 class="titre-section" style="margin-bottom:10px">Historique</h2>
       ${p.evenements.map((ev) => `<div class="etape"><div class="rail"><i style="background:${EVENEMENTS[ev.type].couleur}"></i><span></span></div>
         <div class="corps"><b>${EVENEMENTS[ev.type].label}</b>
-        <small>${esc(nomPersonne(ev.auteur))}${ev.auteur ? ' · ' + esc(ROLES[ev.auteur.role]?.label.split(' ·')[0] || '') : ''} · ${esc(quand(ev.created_at))}</small>
+        <small>${esc(nomPersonne(ev.auteur))}${ev.auteur ? ' · ' + esc(roleTexte(ev.auteur)) : ''} · ${esc(quand(ev.created_at))}</small>
         ${ev.texte && ev.type !== 'declaration' ? `<p>${esc(ev.texte)}</p>` : ''}${grille(photosDe(ev.id))}</div></div>`).join('')}
     </div>
   </div>

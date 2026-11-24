@@ -41,7 +41,7 @@ export async function afficher(ctx) {
       <div style="padding:10px 14px"><button class="btn second plein" id="renvoyer">Envoyer maintenant</button></div>
     </div>` : ''}
     <div class="stats">
-      <a class="stat" href="#/materiel" style="text-decoration:none;color:inherit"><b>${materiel}</b><span>Pannes matériel</span></a>
+      <a class="stat" href="#/materiel?vue=pannes" style="text-decoration:none;color:inherit"><b>${materiel}</b><span>Pannes matériel</span></a>
       <a class="stat" href="#/voie" style="text-decoration:none;color:inherit"><b>${voie}</b><span>Problèmes voie</span></a>
       <div class="stat ${bloquantes ? 'alerte' : ''}"><b>${bloquantes}</b><span>Bloquants (matériel et voie)</span></div>
     </div>
