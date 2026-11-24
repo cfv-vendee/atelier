@@ -1,6 +1,7 @@
 // Exports : rapport PDF à imprimer ou à joindre, et tableur pour analyser les chiffres.
 import { esc, icone, GRAVITES, STATUTS, ELEMENTS, ETATS, CATEGORIES, toast } from '../ui.js';
 import { tableauPdf } from '../pdf.js';
+import { livrer, csv } from '../fichiers.js';
 
 const PERIODES = {
   annee: { label: 'Cette année', debut: () => new Date(new Date().getFullYear(), 0, 1) },
@@ -19,36 +20,6 @@ const ref = (p) => (p.annee && p.numero ? `${p.annee}-${String(p.numero).padStar
 const ou = (p) => (p.cible === 'voie'
   ? ['Voie', ELEMENTS[p.element] || null, p.pk != null ? `PK ${String(p.pk).replace('.', ',')}` : null].filter(Boolean).join(' · ')
   : (p.engin ? `${p.engin.designation}${p.engin.surnom ? ` « ${p.engin.surnom} »` : ''}` : 'Matériel'));
-
-// Enregistre ou partage le fichier. Sur iPhone, la feuille de partage est le seul chemin fiable
-// pour récupérer un fichier depuis une appli installée sur l'écran d'accueil.
-async function livrer(blob, nomFichier) {
-  try {
-    const fichier = new File([blob], nomFichier, { type: blob.type });
-    if (navigator.canShare?.({ files: [fichier] })) {
-      await navigator.share({ files: [fichier], title: nomFichier });
-      return true;
-    }
-  } catch (e) {
-    if (e?.name === 'AbortError') return true;   // partage annulé : ce n'est pas une erreur
-  }
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = nomFichier; a.rel = 'noopener';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 20000);
-  return true;
-}
-
-// Tableur : point-virgule et BOM, pour qu'Excel en français ouvre le fichier sans rien demander.
-function csv(entetes, lignes) {
-  const cellule = (v) => {
-    const t = String(v ?? '');
-    return /[";\n]/.test(t) ? `"${t.replace(/"/g, '""')}"` : t;
-  };
-  const texte = [entetes, ...lignes].map((l) => l.map(cellule).join(';')).join('\r\n');
-  return new Blob(['﻿' + texte], { type: 'text/csv;charset=utf-8' });
-}
 
 function donneesPannes(pannes, debut) {
   const retenues = pannes

@@ -3,6 +3,7 @@ import { qrSvg } from '../qr.js';
 import { lienEngin } from '../scanner.js';
 import { lignePanne } from './accueil.js';
 import { fichePdf } from '../pdf.js';
+import { livrer, csv, passeParLePartage } from '../fichiers.js';
 
 export async function afficher(ctx) {
   const { api, moi, params } = ctx;
@@ -22,7 +23,7 @@ export async function afficher(ctx) {
     ${peutSignaler(moi) ? `<a class="btn plein" href="#/signaler?engin=${e.id}">${icone('plus', 20)}Signaler</a>` : ''}
     <div class="btns">
       <button class="btn second" id="qr">${icone('qr', 20)}QR code</button>
-      <button class="btn second" id="fiche-pdf">${icone('envoi', 20)}Fiche PDF</button>
+      <button class="btn second" id="exporter">${icone('envoi', 20)}Exporter</button>
     </div>
     ${e.notes ? `<div class="bandeau">${esc(e.notes)}</div>` : ''}
     ${moi.est_admin ? `<button class="btn neutre" id="modifier">${icone('crayon', 20)}Modifier la fiche (administrateur)</button>` : ''}
@@ -34,72 +35,87 @@ export async function afficher(ctx) {
   </div>`);
   if (!el) return;
 
-  el.querySelector('#fiche-pdf').onclick = async (ev) => {
-    const bouton = ev.currentTarget;
-    bouton.disabled = true;
-    try {
-      const jour = (d) => (d ? new Date(d).toLocaleDateString('fr-FR') : '');
-      const nom = (p) => (p ? `${p.prenom || ''} ${p.nom || ''}`.trim() : '');
-      const ref = (p) => (p.annee && p.numero ? `${p.annee}-${String(p.numero).padStart(3, '0')}` : '');
-      const colonnes = [
-        { titre: 'Réf.', largeur: 54, grasse: true, insecable: true },
-        { titre: 'Signalée le', largeur: 56, insecable: true },
-        { titre: 'Problème', largeur: 178 },
-        { titre: 'Gravité', largeur: 56, insecable: true },
-        { titre: 'Statut', largeur: 56, insecable: true },
-        { titre: 'Signalée par', largeur: 66 },
-        { titre: 'Réparée le', largeur: 56, insecable: true },
-      ];
-      const ligne = (p) => [ref(p), jour(p.created_at), p.titre || '',
-        GRAVITES[p.gravite]?.label || '', STATUTS[p.statut]?.label || '', nom(p.auteur), jour(p.reparee_at)];
+  // ───── Exporter la fiche de cet engin : PDF à lire ou à imprimer, tableur pour trier ─────
+  const jour = (d) => (d ? new Date(d).toLocaleDateString('fr-FR') : '');
+  const jourHeure = (d) => (d ? new Date(d).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' }) : '');
+  const nom = (p) => (p ? `${p.prenom || ''} ${p.nom || ''}`.trim() : '');
+  const ref = (p) => (p.annee && p.numero ? `${p.annee}-${String(p.numero).padStart(3, '0')}` : '');
+  const nomFichier = (ext) => `CFV-${(e.designation || 'engin').replace(/[^\w]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.${ext}`;
 
-      // La fiche technique reprend souvent le constructeur et l'année : on ne les répète pas.
-      const caracteristiques = (e.fiche_complete || []).map(([k, v]) => [String(k), String(v)]);
-      const dejaDitDans = (mot) => caracteristiques.some(([k]) => k.toLowerCase().includes(mot));
-      const identite = [
-        ['Désignation', e.designation || ''],
-        ['Catégorie', CATEGORIES[e.categorie]?.label || ''],
-        ...(e.surnom ? [['Surnom', e.surnom]] : []),
-        ...(e.serie_nom ? [['Série', e.serie_nom]] : []),
-        ['État du jour', ETATS[e.etat]?.label || ''],
-        ...(e.constructeur && !dejaDitDans('constructeur') ? [['Constructeur', e.constructeur]] : []),
-        ...(e.annee && !dejaDitDans('année') ? [['Année', String(e.annee)]] : []),
-      ];
+  function fabriquerPdf() {
+    const colonnes = [
+      { titre: 'Réf.', largeur: 54, grasse: true, insecable: true },
+      { titre: 'Signalée le', largeur: 56, insecable: true },
+      { titre: 'Problème', largeur: 178 },
+      { titre: 'Gravité', largeur: 56, insecable: true },
+      { titre: 'Statut', largeur: 56, insecable: true },
+      { titre: 'Signalée par', largeur: 66 },
+      { titre: 'Réparée le', largeur: 56, insecable: true },
+    ];
+    const ligne = (p) => [ref(p), jour(p.created_at), p.titre || '',
+      GRAVITES[p.gravite]?.label || '', STATUTS[p.statut]?.label || '', nom(p.auteur), jour(p.reparee_at)];
 
-      const blob = fichePdf({
-        titre: `${e.designation}${e.surnom ? ` « ${e.surnom} »` : ''}`,
-        sousTitre: `Chemin de fer de la Vendée · fiche éditée le ${jour(new Date())}`,
-        resume: [
-          { valeur: ouvertes.length, libelle: ouvertes.length > 1 ? 'problèmes en cours' : 'problème en cours' },
-          { valeur: ouvertes.filter((p) => p.gravite === 'bloquante').length, libelle: 'bloquants' },
-          { valeur: anciennes.length, libelle: 'réparés à ce jour' },
-        ],
-        sections: [
-          { titre: 'Identification', paires: identite },
-          ...(e.notes ? [{ titre: 'Remarque', texte: e.notes }] : []),
-          { titre: 'Caractéristiques', paires: caracteristiques },
-          { titre: 'Problèmes en cours', colonnes, lignes: ouvertes.map(ligne), vide: 'Aucun problème en cours.' },
-          { titre: 'Historique des réparations', colonnes, lignes: anciennes.map(ligne), vide: 'Aucune réparation enregistrée.' },
-        ],
-        pied: 'CFV Atelier · Chemin de fer de la Vendée',
-      });
+    return fichePdf({
+      titre: `${e.designation}${e.surnom ? ` « ${e.surnom} »` : ''}`,
+      sousTitre: `Chemin de fer de la Vendée · ${ETATS[e.etat]?.label || ''} · édité le ${jour(new Date())}`,
+      resume: [
+        { valeur: ouvertes.length, libelle: ouvertes.length > 1 ? 'problèmes en cours' : 'problème en cours' },
+        { valeur: ouvertes.filter((p) => p.gravite === 'bloquante').length, libelle: 'bloquants' },
+        { valeur: anciennes.length, libelle: 'réparés à ce jour' },
+      ],
+      // Pas de description ni de fiche technique : on ne veut que le suivi.
+      sections: [
+        { titre: 'Problèmes en cours', colonnes, lignes: ouvertes.map(ligne), vide: 'Aucun problème en cours.' },
+        { titre: 'Historique des réparations', colonnes, lignes: anciennes.map(ligne), vide: 'Aucune réparation enregistrée.' },
+      ],
+      pied: 'CFV Atelier · Chemin de fer de la Vendée',
+    });
+  }
 
-      const nomFichier = `CFV-${(e.designation || 'engin').replace(/[^\w]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`;
-      const fichier = new File([blob], nomFichier, { type: 'application/pdf' });
-      let partage = false;
+  // Le tableur reprend l'identité de l'engin dans chaque ligne : on peut coller plusieurs
+  // machines les unes sous les autres et trier l'ensemble.
+  function fabriquerCsv() {
+    const machine = `${e.designation || ''}${e.surnom ? ` (${e.surnom})` : ''}`;
+    const entetes = ['Engin', 'Catégorie', 'État du jour', 'Référence', 'Signalée le', 'Problème', 'Description',
+      'Gravité', 'Statut', 'Signalée par', 'Prise en charge par', 'Réparée le'];
+    const lignes = [...ouvertes, ...anciennes].map((p) => [
+      machine, CATEGORIES[e.categorie]?.label || '', ETATS[e.etat]?.label || '',
+      ref(p), jourHeure(p.created_at), p.titre || '', p.description || '',
+      GRAVITES[p.gravite]?.label || '', STATUTS[p.statut]?.label || '',
+      nom(p.auteur), nom(p.technicien), jourHeure(p.reparee_at),
+    ]);
+    // Aucune panne : on fournit tout de même une ligne, pour que le fichier ne soit pas vide.
+    if (!lignes.length) lignes.push([machine, CATEGORIES[e.categorie]?.label || '', ETATS[e.etat]?.label || '',
+      '', '', 'Aucun problème enregistré', '', '', '', '', '', '']);
+    return csv(entetes, lignes);
+  }
+
+  el.querySelector('#exporter').onclick = () => {
+    const verbe = passeParLePartage() ? 'Partager' : 'Télécharger';
+    const { el: f, fermer } = feuille('Exporter cette machine', `
+      <p class="aide" style="margin:0">${verbe === 'Partager'
+        ? 'Le fichier passe par la feuille de partage de l’iPhone : « Enregistrer dans Fichiers » pour le garder.'
+        : 'Le fichier est enregistré directement dans vos téléchargements.'}</p>
+      <button type="button" class="choix gravite" id="f-pdf">
+        <span class="g"><b>Fiche PDF</b><small>Le suivi de la machine, prêt à lire ou à imprimer</small></span></button>
+      <button type="button" class="choix gravite" id="f-csv">
+        <span class="g"><b>Tableur (CSV)</b><small>Les problèmes de la machine, à trier dans Excel ou Numbers</small></span></button>
+      <p class="erreur" id="f-err" role="alert"></p>
+      <div class="btns"><button class="btn neutre" id="f-annuler">Annuler</button></div>`, { focusChamp: false });
+    f.querySelector('#f-annuler').onclick = fermer;
+    const lancer = async (bouton, fabriquer, ext) => {
+      bouton.disabled = true;
       try {
-        if (navigator.canShare?.({ files: [fichier] })) { await navigator.share({ files: [fichier], title: nomFichier }); partage = true; }
-      } catch (err) { if (err?.name === 'AbortError') partage = true; }
-      if (!partage) {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url; a.download = nomFichier; a.rel = 'noopener';
-        document.body.appendChild(a); a.click(); a.remove();
-        setTimeout(() => URL.revokeObjectURL(url), 20000);
+        await livrer(fabriquer(), nomFichier(ext));
+        fermer();
+        toast(verbe === 'Partager' ? 'Fichier prêt à être partagé.' : 'Fichier téléchargé.');
+      } catch (err) {
+        f.querySelector('#f-err').textContent = err?.message || "Le fichier n'a pas pu être créé.";
+        bouton.disabled = false;
       }
-    } catch (err) {
-      toast(err?.message || "La fiche n'a pas pu être créée.");
-    } finally { bouton.disabled = false; }
+    };
+    f.querySelector('#f-pdf').onclick = (ev) => lancer(ev.currentTarget, fabriquerPdf, 'pdf');
+    f.querySelector('#f-csv').onclick = (ev) => lancer(ev.currentTarget, fabriquerCsv, 'csv');
   };
 
   const contenu = el.querySelector('#contenu');
