@@ -1,4 +1,4 @@
-import { esc, ROLES, toast } from '../ui.js';
+import { esc, ROLES, toast, voirMotDePasse } from '../ui.js';
 
 export async function afficher(ctx, { erreurLien } = {}) {
   const { api } = ctx;
@@ -15,6 +15,7 @@ export async function afficher(ctx, { erreurLien } = {}) {
         <button class="lien" id="reinit">Remettre les données de démonstration à zéro</button>
       </div></div>`);
     if (!el) return;
+  voirMotDePasse(el);
     el.querySelectorAll('[data-id]').forEach((b) => (b.onclick = () => api.connexion(b.dataset.id)));
     el.querySelector('#reinit').onclick = () => { api.reinitialiser(); toast('Données de démonstration remises à zéro'); };
     return;
@@ -33,6 +34,7 @@ export async function afficher(ctx, { erreurLien } = {}) {
     <button class="lien" type="button" id="oubli">Mot de passe oublié ?</button>
   </form>`);
   if (!el) return;
+  voirMotDePasse(el);
   const f = el.querySelector('#f'), err = el.querySelector('#err');
   f.onsubmit = async (e) => {
     e.preventDefault(); err.textContent = '';
@@ -61,6 +63,7 @@ export async function choisirMotDePasse(ctx, type, fini) {
     <button class="btn plein" type="submit">Enregistrer</button>
   </form>`);
   if (!el) return;
+  voirMotDePasse(el);
   const f = el.querySelector('#f'), err = el.querySelector('#err');
   f.onsubmit = async (e) => {
     e.preventDefault(); err.textContent = '';

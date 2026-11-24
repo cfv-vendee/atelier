@@ -77,6 +77,8 @@ export function quand(date) {
 
 const ICONES = {
   accueil: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  oeil: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+  'oeil-barre': '<path d="M10.6 5.2A9.9 9.9 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-3 3.9M6.6 6.6A18 18 0 0 0 2 12s3.5 7 10 7a9.6 9.6 0 0 0 4.2-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>',
   materiel: '<rect x="4" y="3" width="16" height="13" rx="3"/><path d="M4 10h16M8 20l-2 2M16 20l2 2M8 16v.01M16 16v.01"/>',
   voie: '<path d="M8 2 6 22M16 2l2 20M7.5 6h9M7 11h10M6.5 16h11"/>',
   profil: '<circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4.2-6 8-6s7 2 8 6"/>',
@@ -179,3 +181,36 @@ export const champPhotos = (id) => `
     <input id="${id}" class="sr" type="file" accept="image/*" multiple>
     <div class="photos"></div>
   </div>`;
+
+// Ajoute un bouton « afficher / masquer » dans chaque champ de mot de passe d'un écran.
+// Appelé après l'affichage ; sans effet si on le rappelle sur le même champ.
+export function voirMotDePasse(racine) {
+  for (const champ of racine.querySelectorAll('input[type="password"]')) {
+    if (champ.dataset.oeil) continue;
+    champ.dataset.oeil = '1';
+    const boite = document.createElement('div');
+    boite.className = 'champ-mdp';
+    champ.parentNode.insertBefore(boite, champ);
+    boite.appendChild(champ);
+
+    const bouton = document.createElement('button');
+    bouton.type = 'button';
+    bouton.className = 'oeil';
+    const majBouton = () => {
+      const visible = champ.type === 'text';
+      bouton.innerHTML = icone(visible ? 'oeil-barre' : 'oeil', 21);
+      bouton.setAttribute('aria-label', visible ? 'Masquer le mot de passe' : 'Afficher le mot de passe');
+      bouton.setAttribute('aria-pressed', String(visible));
+    };
+    bouton.onclick = () => {
+      // On garde la position du curseur : changer le type la remet à la fin sur certains navigateurs.
+      const debut = champ.selectionStart, fin = champ.selectionEnd;
+      champ.type = champ.type === 'password' ? 'text' : 'password';
+      majBouton();
+      champ.focus();
+      try { champ.setSelectionRange(debut, fin); } catch { /* champ qui ne le permet pas */ }
+    };
+    majBouton();
+    boite.appendChild(bouton);
+  }
+}

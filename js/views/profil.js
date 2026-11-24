@@ -1,4 +1,4 @@
-import { esc, icone, ROLES, feuille, toast, avatar } from '../ui.js';
+import { esc, icone, ROLES, feuille, toast, avatar, voirMotDePasse } from '../ui.js';
 import { lignePanne } from './accueil.js';
 import { recadrer } from '../recadrage.js';
 import * as notifications from '../notifications.js';
@@ -92,6 +92,7 @@ export async function afficher(ctx) {
       <div class="champ"><label for="m1">Nouveau mot de passe (8 caractères minimum)</label><input class="saisie" id="m1" type="password" autocomplete="new-password"></div>
       <p class="erreur" id="err" role="alert"></p>
       <div class="btns"><button class="btn neutre" id="annuler">Annuler</button><button class="btn" id="ok">Enregistrer</button></div>`);
+    voirMotDePasse(f);
     f.querySelector('#annuler').onclick = fermer;
     f.querySelector('#ok').onclick = async () => {
       const v = f.querySelector('#m1').value;

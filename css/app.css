@@ -99,6 +99,14 @@ img { max-width: 100%; }
 .saisie, select.saisie, textarea.saisie { min-height: 52px; border-radius: 12px; border: 1px solid var(--bord-champ); background: var(--blanc);
   padding: 12px 14px; font-size: 16px; width: 100%; }
 textarea.saisie { resize: vertical; min-height: 96px; }
+/* Champ de mot de passe avec son bouton « afficher / masquer ». */
+.champ-mdp { position: relative; display: flex; align-items: center; }
+.champ-mdp .saisie { padding-right: 48px; }
+.oeil { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); display: flex; align-items: center;
+  justify-content: center; width: 42px; height: 42px; padding: 0; border: 0; border-radius: 10px;
+  background: none; color: var(--gris); cursor: pointer; }
+.oeil[aria-pressed="true"] { color: var(--vert); }
+.oeil:focus-visible { outline: 3px solid #8FC2A8; outline-offset: 2px; }
 .saisie:focus-visible, .btn:focus-visible, .choix:focus-visible { outline: 3px solid #8FC2A8; outline-offset: 2px; }
 .aide { font-size: 13px; color: var(--gris); }
 .erreur { color: var(--rouge); font-size: 14px; font-weight: 600; }
