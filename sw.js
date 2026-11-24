@@ -1,5 +1,5 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
-const VERSION = 'atelier-v15';
+const VERSION = 'atelier-v16';
 const FICHIERS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/ui.js', 'js/api-demo.js', 'js/api-supabase.js', 'data/parc.js',
@@ -34,13 +34,21 @@ self.addEventListener('fetch', (e) => {
   if (url.origin !== location.origin) return;
   // « no-cache » : on redemande toujours au serveur s'il y a du nouveau (sinon le navigateur
   // peut resservir une ancienne version pendant 10 minutes après une mise à jour).
-  e.respondWith(
-    fetch(e.request.mode === 'navigate' ? e.request.url : e.request, { cache: 'no-cache' }).then((rep) => {
-      const copie = rep.clone();
-      caches.open(VERSION).then((c) => c.put(e.request, copie));
+  // Hors connexion, le réseau peut mettre plusieurs secondes à déclarer l'échec (surtout sur iPhone) :
+  // on court-circuite au bout de 1,2 s et on sert la copie gardée sans attendre davantage, tout en
+  // laissant la requête réseau se terminer en tâche de fond pour rafraîchir le cache si elle aboutit.
+  e.respondWith((async () => {
+    const net = fetch(e.request.mode === 'navigate' ? e.request.url : e.request, { cache: 'no-cache' }).then((rep) => {
+      if (rep && rep.ok) { const copie = rep.clone(); caches.open(VERSION).then((c) => c.put(e.request, copie)); }
       return rep;
-    }).catch(() => caches.match(e.request).then((r) => r || caches.match('index.html')))
-  );
+    }).catch(() => null);
+    const rapide = await Promise.race([net, new Promise((r) => setTimeout(() => r(null), 1200))]);
+    if (rapide) return rapide;
+    const gardee = await caches.match(e.request);
+    if (gardee) return gardee;
+    const tardive = await net;
+    return tardive || caches.match('index.html');
+  })());
 });
 
 // ───── Notifications reçues ─────

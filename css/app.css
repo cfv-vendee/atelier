@@ -7,7 +7,7 @@
   --ok: #146C43; --ok-fond: #E5F4EC;
   --bleu: #175CD3;
   --rayon: 14px;
-  --nav-h: 72px;
+  --nav-h: 56px;
   font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   color: var(--encre);
   -webkit-text-size-adjust: 100%;
@@ -29,7 +29,7 @@ img { max-width: 100%; }
 .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--blanc); border-top: 1px solid var(--bord);
   padding-bottom: env(safe-area-inset-bottom); }
 .nav-in { max-width: 640px; margin: 0 auto; height: var(--nav-h); display: grid; grid-template-columns: repeat(4, 1fr); }
-.nav a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; text-decoration: none;
+.nav a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; text-decoration: none;
   color: var(--gris); font-size: 12px; font-weight: 600; }
 .nav a[aria-current="page"] { color: var(--vert); font-weight: 700; }
 
@@ -199,8 +199,8 @@ textarea.saisie { resize: vertical; min-height: 96px; }
 .scanner .btn { min-width: 200px; }
 
 /* Bandeau réseau */
-.reseau { position: relative; background: #3F4650; color: #fff; font-size: 13px; font-weight: 600; line-height: 1.35;
-  padding: 8px 14px; padding-top: calc(8px + env(safe-area-inset-top)); }
+.reseau { position: relative; background: #3F4650; color: #fff; font-size: 13px; font-weight: 600; line-height: 1.3;
+  padding: 6px 14px; padding-top: calc(6px + env(safe-area-inset-top)); }
 .reseau.attente { background: var(--orange); }
 .photo-absente { aspect-ratio: 1; border-radius: 10px; background: var(--bord); color: var(--gris); font-size: 12px; font-weight: 600;
   display: flex; align-items: center; justify-content: center; text-align: center; padding: 6px; }

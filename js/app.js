@@ -46,7 +46,7 @@ function afficherNav(onglet) {
   navEl.hidden = !onglet;
   if (!onglet) return;
   navEl.innerHTML = `<div class="nav-in">${ONGLETS.map(([id, label]) =>
-    `<a href="#/${id}" ${id === onglet ? 'aria-current="page"' : ''}>${icone(id)}${label}</a>`).join('')}</div>`;
+    `<a href="#/${id}" ${id === onglet ? 'aria-current="page"' : ''}>${icone(id, 21)}${label}</a>`).join('')}</div>`;
 }
 
 async function router() {
