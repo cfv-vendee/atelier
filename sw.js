@@ -1,6 +1,6 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
 // À faire correspondre à VERSION dans js/version.js à chaque publication.
-const VERSION = 'atelier-v1.7.0';
+const VERSION = 'atelier-v1.7.1';
 const FICHIERS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/version.js', 'js/ui.js', 'js/api-demo.js', 'js/api-supabase.js', 'data/parc.js',
@@ -11,10 +11,14 @@ const FICHIERS = [
 
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(VERSION).then(async (c) => {
-    await c.addAll(FICHIERS.map((f) => new Request(f, { cache: 'reload' })));
+    // Un seul fichier qui échoue (réseau mobile capricieux) ne doit pas bloquer toute la mise à jour :
+    // on tente chacun séparément (addAll annulerait tout au premier échec) et on passe la main
+    // même si certains n'ont pas pu être mis en cache ; ils seront redemandés au serveur à l'usage.
+    await Promise.allSettled(FICHIERS.map((f) => c.add(new Request(f, { cache: 'reload' }))));
     // Lecteur de QR code gardé d'avance, pour pouvoir scanner même sans réseau (meilleur effort).
     await c.add('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js').catch(() => {});
-  }).then(() => self.skipWaiting()));
+    self.skipWaiting();
+  }));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then((cles) => Promise.all(cles.filter((k) => k !== VERSION).map((k) => caches.delete(k))))

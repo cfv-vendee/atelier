@@ -28,9 +28,22 @@ export async function afficher(ctx) {
     <div class="carte pad notifs" id="notifs"><p class="aide" style="margin:0">Chargement…</p></div>
     ${api.demo ? '' : '<button class="btn neutre" id="mdp">Changer mon mot de passe</button>'}
     <button class="btn danger" id="sortir">Se déconnecter</button>
-    <p style="text-align:center;color:var(--gris-clair);font-size:12px;margin:0">CFV Atelier · version ${VERSION}</p>
+    <div style="text-align:center;display:flex;flex-direction:column;gap:4px;align-items:center">
+      <p style="color:var(--gris-clair);font-size:12px;margin:0">CFV Atelier · version ${VERSION}</p>
+      <button class="lien" id="forcer-maj" style="font-size:12px">Forcer la mise à jour</button>
+    </div>
   </div>`);
   if (!el) return;
+  el.querySelector('#forcer-maj').onclick = async (ev) => {
+    ev.target.disabled = true; ev.target.textContent = 'Mise à jour…';
+    try {
+      const regs = (await navigator.serviceWorker?.getRegistrations?.()) || [];
+      await Promise.all(regs.map((r) => r.unregister()));
+      const noms = await caches.keys();
+      await Promise.all(noms.map((n) => caches.delete(n)));
+    } catch {}
+    location.reload();
+  };
   el.querySelector('#sortir').onclick = async () => {
     const enAttente = await ctx.envois.lister().catch(() => []);
     if (!enAttente.length) { await notifications.oublierCeTelephone(api); return api.deconnexion(); }
