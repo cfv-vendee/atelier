@@ -23,7 +23,16 @@ const cache = {
   ecrire(cle, valeur) { try { localStorage.setItem(PREFIXE_CACHE + cle, JSON.stringify(valeur)); } catch { /* stockage plein */ } },
   vider() { try { Object.keys(localStorage).filter((k) => k.startsWith(PREFIXE_CACHE)).forEach((k) => localStorage.removeItem(k)); } catch { /* rien */ } },
 };
+const SANS_RESEAU = "Pas de connexion internet, et cet écran n'a pas encore été ouvert sur ce téléphone.";
 async function avecCache(cle, lecture) {
+  // Hors connexion, inutile de tenter la requête : sur iPhone, chaque appel met plusieurs secondes
+  // à déclarer l'échec, et un écran en enchaîne plusieurs — d'où les 5 à 10 s d'attente avant
+  // l'affichage. On sert directement la copie gardée.
+  if (!navigator.onLine) {
+    const copie = cache.lire(cle);
+    if (copie) return copie;
+    throw erreur(SANS_RESEAU);
+  }
   try {
     const r = await lecture();
     cache.ecrire(cle, r);
@@ -32,7 +41,7 @@ async function avecCache(cle, lecture) {
     if (e.reseau || !navigator.onLine) {
       const copie = cache.lire(cle);
       if (copie) return copie;
-      throw erreur("Pas de connexion internet, et cet écran n'a pas encore été ouvert sur ce téléphone.");
+      throw erreur(SANS_RESEAU);
     }
     throw e;
   }
@@ -81,13 +90,17 @@ export function creerApi({ url, cle }) {
 
   return {
     demo: false,
+    // Sans réseau, la session ne peut pas être renouvelée : on garde l'accès en consultation, et
+    // sans passer par getSession() qui tenterait de renouveler le jeton (plusieurs secondes perdues).
     async session() {
+      const gardee = () => {
+        try { const s = JSON.parse(localStorage.getItem(cleSession)); if (s?.user?.id) return { user: s.user, horsLigne: true }; } catch { /* rien */ }
+        return null;
+      };
+      if (!navigator.onLine) return gardee();
       const { data, error } = await sb.auth.getSession();
       if (data.session) return data.session;
-      // Sans réseau, la session ne peut pas être renouvelée : on garde l'accès en consultation.
-      if (!navigator.onLine || error) {
-        try { const s = JSON.parse(localStorage.getItem(cleSession)); if (s?.user?.id) return { user: s.user, horsLigne: true }; } catch { /* rien */ }
-      }
+      if (!navigator.onLine || error) return gardee();
       return null;
     },
     surAuth(cb) { sb.auth.onAuthStateChange((evt, session) => cb(evt, session)); },
