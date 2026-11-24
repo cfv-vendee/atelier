@@ -1,6 +1,11 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
 // À faire correspondre à VERSION dans js/version.js à chaque publication.
-const VERSION = 'atelier-v1.7.2';
+const VERSION = 'atelier-v1.7.3';
+// Ajoute un paramètre propre à cette version à chaque requête vers notre propre site : ni le CDN de
+// GitHub Pages, ni la mémoire HTTP du téléphone (différente de celle qu'on gère nous-même ci-dessous)
+// n'ont jamais vu cette adresse exacte avant, donc aucun des deux ne peut la resservir depuis une
+// ancienne copie — « no-cache » demande une revalidation, mais un intermédiaire peut mal y répondre.
+const avecVersion = (url) => { const u = new URL(url, location.href); u.searchParams.set('cfv_v', VERSION); return u.toString(); };
 const FICHIERS = [
   './', 'index.html', 'manifest.webmanifest', 'css/app.css',
   'js/app.js', 'js/config.js', 'js/version.js', 'js/ui.js', 'js/api-demo.js', 'js/api-supabase.js', 'data/parc.js',
@@ -14,7 +19,13 @@ self.addEventListener('install', (e) => {
     // Un seul fichier qui échoue (réseau mobile capricieux) ne doit pas bloquer toute la mise à jour :
     // on tente chacun séparément (addAll annulerait tout au premier échec) et on passe la main
     // même si certains n'ont pas pu être mis en cache ; ils seront redemandés au serveur à l'usage.
-    await Promise.allSettled(FICHIERS.map((f) => c.add(new Request(f, { cache: 'reload' }))));
+    // On récupère depuis l'adresse « propre à cette version » (voir avecVersion ci-dessus), mais on
+    // range le résultat sous l'adresse normale du fichier : le reste de l'appli continue de le
+    // demander sans paramètre.
+    await Promise.allSettled(FICHIERS.map(async (f) => {
+      const rep = await fetch(new Request(avecVersion(f), { cache: 'reload' }));
+      if (rep.ok) await c.put(f, rep);
+    }));
     // Lecteur de QR code gardé d'avance, pour pouvoir scanner même sans réseau (meilleur effort).
     await c.add('https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js').catch(() => {});
     self.skipWaiting();
@@ -37,13 +48,13 @@ self.addEventListener('fetch', (e) => {
     return;
   }
   if (url.origin !== location.origin) return;
-  // « no-cache » : on redemande toujours au serveur s'il y a du nouveau (sinon le navigateur
-  // peut resservir une ancienne version pendant 10 minutes après une mise à jour).
+  // Adresse « propre à cette version » (voir avecVersion ci-dessus) : ni le CDN devant GitHub Pages
+  // ni la mémoire HTTP du téléphone ne peuvent la resservir depuis une ancienne copie.
   // Hors connexion, le réseau peut mettre plusieurs secondes à déclarer l'échec (surtout sur iPhone) :
   // on court-circuite au bout de 1,2 s et on sert la copie gardée sans attendre davantage, tout en
   // laissant la requête réseau se terminer en tâche de fond pour rafraîchir le cache si elle aboutit.
   e.respondWith((async () => {
-    const net = fetch(e.request.mode === 'navigate' ? e.request.url : e.request, { cache: 'no-cache' }).then((rep) => {
+    const net = fetch(avecVersion(e.request.url), { cache: 'no-cache' }).then((rep) => {
       if (rep && rep.ok) { const copie = rep.clone(); caches.open(VERSION).then((c) => c.put(e.request, copie)); }
       return rep;
     }).catch(() => null);
