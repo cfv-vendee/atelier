@@ -60,7 +60,7 @@ export async function afficher(ctx) {
         ${ev.texte && ev.type !== 'declaration' ? `<p>${esc(ev.texte)}</p>` : ''}${grille(photosDe(ev.id))}</div></div>`).join('')}
     </div>
   </div>
-  <div class="pied">${actions}${moi.est_admin ? '<button class="lien" id="supprimer" style="align-self:center;color:var(--rouge)">Supprimer cette panne (administrateur)</button>' : ''}</div>`);
+  <div class="pied">${actions}${moi.est_admin ? '<button class="lien" id="supprimer" style="align-self:center;color:var(--rouge)">Supprimer cette panne</button>' : ''}</div>`);
   if (!el) return;
   // Photo non disponible (hors connexion, lien expiré) : on l'indique au lieu d'une image cassée.
   el.querySelectorAll('.photos img').forEach((img) => {

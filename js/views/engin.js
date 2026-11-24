@@ -26,7 +26,7 @@ export async function afficher(ctx) {
       <button class="btn second" id="exporter">${icone('envoi', 20)}Exporter</button>
     </div>
     ${e.notes ? `<div class="bandeau">${esc(e.notes)}</div>` : ''}
-    ${moi.est_admin ? `<button class="btn neutre" id="modifier">${icone('crayon', 20)}Modifier la fiche (administrateur)</button>` : ''}
+    ${moi.est_admin ? `<button class="btn neutre" id="modifier">${icone('crayon', 20)}Modifier la fiche</button>` : ''}
     <div class="segments" role="tablist" aria-label="Sections">
       <button role="tab" data-o="pannes">Pannes${ouvertes.length ? ` (${ouvertes.length})` : ''}</button>
       <button role="tab" data-o="fiche">Fiche technique</button>
