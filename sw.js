@@ -1,6 +1,6 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
 // À faire correspondre à VERSION dans js/version.js à chaque publication.
-const VERSION = 'atelier-v1.7.9';
+const VERSION = 'atelier-v1.7.10';
 // Ajoute un paramètre propre à cette version à chaque requête vers notre propre site : ni le CDN de
 // GitHub Pages, ni la mémoire HTTP du téléphone (différente de celle qu'on gère nous-même ci-dessous)
 // n'ont jamais vu cette adresse exacte avant, donc aucun des deux ne peut la resservir depuis une
@@ -102,6 +102,23 @@ self.addEventListener('fetch', (e) => {
       return new Response(SECOURS, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
     }
     return Response.error();
+  })());
+});
+
+// Rafraîchissement demandé par le bouton « Forcer la mise à jour » : on retélécharge tout dans le
+// cache existant, fichier par fichier. Rien n'est supprimé au préalable — si un téléchargement
+// échoue, l'ancienne copie reste en place et l'appli continue de fonctionner hors connexion.
+self.addEventListener('message', (e) => {
+  if (e.data?.type !== 'rafraichir') return;
+  e.waitUntil((async () => {
+    let ok = false;
+    try {
+      const c = await caches.open(VERSION);
+      await Promise.all(ESSENTIELS.map((f) => garder(c, f)));
+      await Promise.allSettled(AUTRES.map((f) => garder(c, f)));
+      ok = await complet(c);
+    } catch { ok = false; }
+    e.source?.postMessage({ type: 'rafraichi', ok });
   })());
 });
 

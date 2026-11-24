@@ -35,29 +35,40 @@ export async function afficher(ctx) {
   </div>`);
   if (!el) return;
   el.querySelector('#forcer-maj').onclick = async (ev) => {
-    // Sans réseau, rien à aller chercher : on ne touche à rien, sinon on casse le hors connexion.
+    // Sans reseau, rien a aller chercher : on ne touche a rien, sinon on casse le hors connexion.
     if (!navigator.onLine) { toast('Mise à jour impossible sans connexion.'); return; }
-    ev.target.disabled = true; ev.target.textContent = 'Mise à jour…';
+    const bouton = ev.target;
+    bouton.disabled = true; bouton.textContent = 'Mise à jour…';
+    // On ne désinscrit PLUS le service worker et on ne vide PLUS le cache : si la réinstallation
+    // échouait ensuite, l'appareil se retrouvait sans rien et l'appli ne s'ouvrait plus hors
+    // connexion. On demande simplement au service worker en place de retélécharger ses fichiers,
+    // et on ne recharge que si c'est confirmé complet.
+    let ok = false;
     try {
-      const regs = (await navigator.serviceWorker?.getRegistrations?.()) || [];
-      await Promise.all(regs.map((r) => r.unregister()));
-      // On ne vide PAS le cache ici : la nouvelle installation le remplace fichier par fichier et
-      // fait elle-même le ménage une fois complète. Le vider d'abord laissait l'appareil sans rien
-      // si le téléchargement échouait ensuite — et l'appli ne s'ouvrait plus du tout hors connexion.
-      // On réinstalle tout de suite une version neuve du service worker et on attend qu'elle prenne
-      // la main AVANT de recharger : sinon ce rechargement n'est protégé par aucun service worker un
-      // court instant, et le navigateur peut resservir un fichier gardé dans sa propre mémoire.
-      if ('serviceWorker' in navigator) {
-        const reg = await navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' });
-        await new Promise((resolve) => {
-          if (reg.active) return resolve();
-          const sw = reg.installing || reg.waiting;
-          if (!sw) return resolve();
-          sw.addEventListener('statechange', () => { if (sw.state === 'activated') resolve(); });
-          setTimeout(resolve, 8000);
+      const reg = (await navigator.serviceWorker?.getRegistration?.())
+        || (await navigator.serviceWorker?.register?.('sw.js', { updateViaCache: 'none' }));
+      if (reg) {
+        await reg.update().catch(() => {});
+        await navigator.serviceWorker.ready.catch(() => {});
+        const sw = navigator.serviceWorker.controller || reg.active;
+        if (sw) ok = await new Promise((resolve) => {
+          const ecoute = (m) => {
+            if (m.data?.type !== 'rafraichi') return;
+            navigator.serviceWorker.removeEventListener('message', ecoute);
+            resolve(!!m.data.ok);
+          };
+          navigator.serviceWorker.addEventListener('message', ecoute);
+          sw.postMessage({ type: 'rafraichir' });
+          setTimeout(() => { navigator.serviceWorker.removeEventListener('message', ecoute); resolve(false); }, 25000);
         });
       }
-    } catch {}
+    } catch { ok = false; }
+    if (!ok) {
+      // L'appli garde ce qu'elle avait : on ne recharge pas, on le dit.
+      bouton.disabled = false; bouton.textContent = 'Forcer la mise à jour';
+      toast('Mise à jour incomplète. Réessayez avec une meilleure connexion.');
+      return;
+    }
     location.reload();
   };
   el.querySelector('#sortir').onclick = async () => {
