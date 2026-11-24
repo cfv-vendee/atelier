@@ -122,11 +122,15 @@ document.getElementById('app').prepend(bandeau);
 let nbEnAttente = 0;
 function majBandeau() {
   const horsLigne = !navigator.onLine;
-  const attente = nbEnAttente ? ` · ${nbEnAttente} envoi${nbEnAttente > 1 ? 's' : ''} en attente` : '';
-  bandeau.hidden = !horsLigne && !nbEnAttente;
+  const attente = nbEnAttente ? ` · ${nbEnAttente} en attente` : '';
+  const visible = horsLigne || !!nbEnAttente;
+  bandeau.hidden = !visible;
   bandeau.classList.toggle('attente', !horsLigne);
+  // Le bandeau prend alors la zone de sécurité du haut à la place de .entete (voir app.css).
+  document.getElementById('app').classList.toggle('hors-ligne', visible);
+  // Texte court : il tient sur une ligne, le bandeau reste bas.
   bandeau.textContent = horsLigne
-    ? `Hors connexion${attente}. Vous pouvez consulter et signaler : l'envoi se fera au retour du réseau.`
+    ? `Hors connexion${attente} · envoi au retour du réseau`
     : `Envoi en cours${attente}…`;
 }
 envois.surChangement((liste) => { nbEnAttente = liste.length; majBandeau(); });
