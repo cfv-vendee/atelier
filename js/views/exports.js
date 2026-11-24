@@ -136,7 +136,7 @@ export async function afficher(ctx) {
 
   const el = ctx.rendre(`
   <div class="barre"><a class="retour" href="#/profil" data-retour aria-label="Retour au profil">${icone('retour')}</a><h1>Exports</h1></div>
-  <div class="pad">
+  <div class="page">
     <p class="aide">Un rapport PDF prêt à imprimer ou à joindre à un courriel, et un tableur pour trier et calculer.</p>
 
     <div class="champ"><span class="etiquette">1. Quoi exporter ?</span>

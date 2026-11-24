@@ -121,72 +121,145 @@ function assembler(pages, dim) {
   return new Blob([octets], { type: 'application/pdf' });
 }
 
+
+// ───── Composeur : gère les pages, les ruptures et les pieds de page ─────
+class Composeur {
+  constructor({ paysage = false, pied = '' } = {}) {
+    this.dim = paysage ? { largeur: A4.hauteur, hauteur: A4.largeur } : A4;
+    this.utile = this.dim.largeur - 2 * MARGE;
+    this.pied = pied;
+    this.pages = [];
+    this.nouvelle();
+  }
+  nouvelle() {
+    this.page = new Page();
+    this.pages.push(this.page);
+    this.y = this.dim.hauteur - MARGE;
+    if (this.surNouvellePage) this.surNouvellePage(this);
+    return this.page;
+  }
+  place(hauteur) {                       // réserve la place demandée, en changeant de page si besoin
+    if (this.y - hauteur < MARGE + 24) this.nouvelle();
+    return this.y;
+  }
+  entete({ titre, sousTitre, resume = [] }) {
+    this.page.texte(MARGE, this.y - 14, titre, { taille: 16, grasse: true });
+    this.y -= 22;
+    if (sousTitre) { this.page.texte(MARGE, this.y - 10, sousTitre, { taille: 9.5, gris: 0.35 }); this.y -= 18; }
+    if (resume.length) {
+      this.y -= 6;
+      this.page.pave(MARGE, this.y - 26, this.utile, 26, 0.95);
+      let x = MARGE + 10;
+      for (const r of resume) {
+        this.page.texte(x, this.y - 11, String(r.valeur), { taille: 11, grasse: true });
+        this.page.texte(x + largeur(String(r.valeur), 11, true) + 5, this.y - 11, r.libelle, { taille: 8.5, gris: 0.4 });
+        x += largeur(String(r.valeur), 11, true) + largeur(r.libelle, 8.5, false) + 22;
+      }
+      this.y -= 34;
+    } else this.y -= 8;
+  }
+  sousSection(titre) {
+    this.place(30);
+    this.y -= 10;
+    this.page.texte(MARGE, this.y - 10, titre, { taille: 11, grasse: true });
+    this.y -= 15;
+    this.page.trait(MARGE, this.y, this.dim.largeur - MARGE, this.y, { gris: 0.8, epaisseur: 0.8 });
+    this.y -= 4;
+  }
+  // Liste « libellé : valeur » sur deux colonnes
+  paires(paires) {
+    const colonne = this.utile / 2 - 6;
+    const libelle = colonne * 0.44;
+    for (let i = 0; i < paires.length; i += 2) {
+      const duo = paires.slice(i, i + 2);
+      const hauteurs = duo.map(([l, v]) => Math.max(
+        couper(l, libelle - 6, 9, false).length, couper(v, colonne - libelle - 6, 9, false).length));
+      const h = Math.max(...hauteurs) * 12 + 6;
+      this.place(h);
+      duo.forEach(([l, v], n) => {
+        const x = MARGE + n * (colonne + 12);
+        couper(l, libelle - 6, 9, false).forEach((t, k) => this.page.texte(x, this.y - 10 - k * 12, t, { taille: 9, gris: 0.42 }));
+        couper(v, colonne - libelle - 6, 9, false).forEach((t, k) => this.page.texte(x + libelle, this.y - 10 - k * 12, t, { taille: 9, grasse: true }));
+      });
+      this.y -= h;
+      this.page.trait(MARGE, this.y, this.dim.largeur - MARGE, this.y, { gris: 0.9 });
+    }
+  }
+  paragraphe(texte) {
+    for (const t of couper(texte, this.utile, 9, false)) {
+      this.place(13);
+      this.page.texte(MARGE, this.y - 10, t, { taille: 9 });
+      this.y -= 13;
+    }
+    this.y -= 4;
+  }
+  tableau({ colonnes, lignes, vide = 'Aucune donnée.' }) {
+    const total = colonnes.reduce((s, c) => s + c.largeur, 0);
+    const cols = colonnes.map((c) => ({ ...c, largeur: (c.largeur / total) * this.utile }));
+    const enTete = () => {
+      this.page.pave(MARGE, this.y - 15, this.utile, 15, 0.92);
+      let x = MARGE + 5;
+      for (const c of cols) { this.page.texte(x, this.y - 11, tronquer(c.titre, c.largeur - 8, 8, true), { taille: 8, grasse: true }); x += c.largeur; }
+      this.y -= 15;
+    };
+    this.place(44); enTete();
+    this.surNouvellePage = (c) => { c.y -= 6; enTete(); };
+    const TAILLE = 8.5, INTER = 10.5;
+    let paire = false;
+    for (const ligne of lignes) {
+      const cellules = cols.map((c, i) => (c.insecable
+        ? [tronquer(ligne[i], c.largeur - 10, TAILLE, !!c.grasse)]
+        : couper(ligne[i], c.largeur - 10, TAILLE, !!c.grasse)));
+      const h = Math.max(...cellules.map((l) => l.length)) * INTER + 7;
+      this.place(h);
+      if (paire) this.page.pave(MARGE, this.y - h, this.utile, h, 0.975);
+      let x = MARGE + 5;
+      cellules.forEach((lignesCellule, i) => {
+        lignesCellule.forEach((t, n) => this.page.texte(x, this.y - 12 - n * INTER, t, { taille: TAILLE, grasse: !!cols[i].grasse, gris: cols[i].gris ?? null }));
+        x += cols[i].largeur;
+      });
+      this.y -= h;
+      this.page.trait(MARGE, this.y, this.dim.largeur - MARGE, this.y, { gris: 0.87 });
+      paire = !paire;
+    }
+    if (!lignes.length) { this.page.texte(MARGE + 5, this.y - 14, vide, { taille: 9, gris: 0.45 }); this.y -= 20; }
+    this.surNouvellePage = null;
+  }
+  terminer() {
+    this.pages.forEach((p, i) => {
+      p.trait(MARGE, MARGE + 16, this.dim.largeur - MARGE, MARGE + 16, { gris: 0.85 });
+      if (this.pied) p.texte(MARGE, MARGE + 5, this.pied, { taille: 7.5, gris: 0.5 });
+      const num = `Page ${i + 1} sur ${this.pages.length}`;
+      p.texte(this.dim.largeur - MARGE - largeur(num, 7.5, false), MARGE + 5, num, { taille: 7.5, gris: 0.5 });
+    });
+    return assembler(this.pages, this.dim);
+  }
+}
+
 /**
- * Construit un PDF : un titre, quelques chiffres clés, puis un tableau qui se poursuit page après page.
- * colonnes : [{ titre, largeur, grasse }]  —  lignes : tableau de tableaux de textes
+ * Rapport : un titre, quelques chiffres clés, puis un tableau qui se poursuit page après page.
+ * colonnes : [{ titre, largeur, grasse, insecable }]  —  lignes : tableau de tableaux de textes
  */
 export function tableauPdf({ titre, sousTitre, resume = [], colonnes, lignes, pied = '', paysage = false }) {
-  const pages = [];
-  const page_ = paysage ? { largeur: A4.hauteur, hauteur: A4.largeur } : A4;
-  const largeurUtile = page_.largeur - 2 * MARGE;
-  const total = colonnes.reduce((s, c) => s + c.largeur, 0);
-  const cols = colonnes.map((c) => ({ ...c, largeur: (c.largeur / total) * largeurUtile }));
-  let page = null, y = 0;
+  const c = new Composeur({ paysage, pied });
+  c.entete({ titre, sousTitre, resume });
+  c.tableau({ colonnes, lignes, vide: 'Aucune donnée sur cette période.' });
+  return c.terminer();
+}
 
-  const nouvellePage = (premiere) => {
-    page = new Page(); pages.push(page);
-    y = page_.hauteur - MARGE;
-    if (premiere) {
-      page.texte(MARGE, y - 14, titre, { taille: 16, grasse: true });
-      y -= 22;
-      if (sousTitre) { page.texte(MARGE, y - 10, sousTitre, { taille: 9.5, gris: 0.35 }); y -= 18; }
-      if (resume.length) {
-        y -= 6;
-        page.pave(MARGE, y - 26, largeurUtile, 26, 0.95);
-        let x = MARGE + 10;
-        for (const r of resume) {
-          page.texte(x, y - 11, String(r.valeur), { taille: 11, grasse: true });
-          page.texte(x + largeur(String(r.valeur), 11, true) + 5, y - 11, r.libelle, { taille: 8.5, gris: 0.4 });
-          x += largeur(String(r.valeur), 11, true) + largeur(r.libelle, 8.5, false) + 22;
-        }
-        y -= 34;
-      } else y -= 8;
-    } else y -= 6;
-    // En-tête du tableau, répété sur chaque page
-    page.pave(MARGE, y - 15, largeurUtile, 15, 0.92);
-    let x = MARGE + 5;
-    for (const c of cols) { page.texte(x, y - 11, tronquer(c.titre, c.largeur - 8, 8, true), { taille: 8, grasse: true }); x += c.largeur; }
-    y -= 15;
-  };
-
-  nouvellePage(true);
-  const TAILLE = 8.5, INTER = 10.5;
-  let paire = false;
-  for (const ligne of lignes) {
-    const cellules = cols.map((c, i) => (c.insecable
-      ? [tronquer(ligne[i], c.largeur - 10, TAILLE, !!c.grasse)]
-      : couper(ligne[i], c.largeur - 10, TAILLE, !!c.grasse)));
-    const hauteur = Math.max(...cellules.map((l) => l.length)) * INTER + 7;
-    if (y - hauteur < MARGE + 24) nouvellePage(false);
-    if (paire) page.pave(MARGE, y - hauteur, largeurUtile, hauteur, 0.975);
-    let x = MARGE + 5;
-    cellules.forEach((lignesCellule, i) => {
-      lignesCellule.forEach((t, n) => {
-        page.texte(x, y - 12 - n * INTER, t, { taille: TAILLE, grasse: !!cols[i].grasse, gris: cols[i].gris ?? null });
-      });
-      x += cols[i].largeur;
-    });
-    y -= hauteur;
-    page.trait(MARGE, y, page_.largeur - MARGE, y, { gris: 0.87 });
-    paire = !paire;
+/**
+ * Fiche d'un engin : identité, caractéristiques, remarque, problèmes en cours et historique.
+ * sections : [{ titre, paires }] ou [{ titre, colonnes, lignes, vide }] ou [{ titre, texte }]
+ */
+export function fichePdf({ titre, sousTitre, resume = [], sections = [], pied = '' }) {
+  const c = new Composeur({ paysage: false, pied });
+  c.entete({ titre, sousTitre, resume });
+  for (const s of sections) {
+    if (s.paires && !s.paires.length) continue;
+    if (s.titre) c.sousSection(s.titre);
+    if (s.paires) c.paires(s.paires);
+    else if (s.texte) c.paragraphe(s.texte);
+    else if (s.colonnes) c.tableau({ colonnes: s.colonnes, lignes: s.lignes || [], vide: s.vide || 'Aucun.' });
   }
-  if (!lignes.length) { page.texte(MARGE + 5, y - 14, 'Aucune donnée sur cette période.', { taille: 9, gris: 0.45 }); y -= 20; }
-
-  pages.forEach((p, i) => {
-    p.trait(MARGE, MARGE + 16, page_.largeur - MARGE, MARGE + 16, { gris: 0.85 });
-    if (pied) p.texte(MARGE, MARGE + 5, pied, { taille: 7.5, gris: 0.5 });
-    const num = `Page ${i + 1} sur ${pages.length}`;
-    p.texte(page_.largeur - MARGE - largeur(num, 7.5, false), MARGE + 5, num, { taille: 7.5, gris: 0.5 });
-  });
-  return assembler(pages, page_);
+  return c.terminer();
 }

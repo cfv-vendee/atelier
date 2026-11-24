@@ -1,7 +1,8 @@
-import { esc, icone, pastille, ETATS, CATEGORIES, nomEngin, peutSignaler, peutReparer, feuille, toast } from '../ui.js';
+import { esc, icone, pastille, ETATS, CATEGORIES, GRAVITES, STATUTS, nomEngin, peutSignaler, peutReparer, feuille, toast } from '../ui.js';
 import { qrSvg } from '../qr.js';
 import { lienEngin } from '../scanner.js';
 import { lignePanne } from './accueil.js';
+import { fichePdf } from '../pdf.js';
 
 export async function afficher(ctx) {
   const { api, moi, params } = ctx;
@@ -21,6 +22,7 @@ export async function afficher(ctx) {
     <div class="${peutSignaler(moi) ? 'btns' : ''}" style="${peutSignaler(moi) ? '' : 'display:flex;flex-direction:column'}">
       ${peutSignaler(moi) ? `<a class="btn" href="#/signaler?engin=${e.id}">${icone('plus', 20)}Signaler</a>` : ''}
       <button class="btn second" id="qr">${icone('qr', 20)}QR code</button>
+      <button class="btn second" id="fiche-pdf">${icone('envoi', 20)}Fiche PDF</button>
     </div>
     ${e.notes ? `<div class="bandeau">${esc(e.notes)}</div>` : ''}
     ${moi.est_admin ? `<button class="btn neutre" id="modifier">${icone('crayon', 20)}Modifier la fiche (administrateur)</button>` : ''}
@@ -31,6 +33,74 @@ export async function afficher(ctx) {
     <div id="contenu"></div>
   </div>`);
   if (!el) return;
+
+  el.querySelector('#fiche-pdf').onclick = async (ev) => {
+    const bouton = ev.currentTarget;
+    bouton.disabled = true;
+    try {
+      const jour = (d) => (d ? new Date(d).toLocaleDateString('fr-FR') : '');
+      const nom = (p) => (p ? `${p.prenom || ''} ${p.nom || ''}`.trim() : '');
+      const ref = (p) => (p.annee && p.numero ? `${p.annee}-${String(p.numero).padStart(3, '0')}` : '');
+      const colonnes = [
+        { titre: 'Réf.', largeur: 54, grasse: true, insecable: true },
+        { titre: 'Signalée le', largeur: 56, insecable: true },
+        { titre: 'Problème', largeur: 178 },
+        { titre: 'Gravité', largeur: 56, insecable: true },
+        { titre: 'Statut', largeur: 56, insecable: true },
+        { titre: 'Signalée par', largeur: 66 },
+        { titre: 'Réparée le', largeur: 56, insecable: true },
+      ];
+      const ligne = (p) => [ref(p), jour(p.created_at), p.titre || '',
+        GRAVITES[p.gravite]?.label || '', STATUTS[p.statut]?.label || '', nom(p.auteur), jour(p.reparee_at)];
+
+      // La fiche technique reprend souvent le constructeur et l'année : on ne les répète pas.
+      const caracteristiques = (e.fiche_complete || []).map(([k, v]) => [String(k), String(v)]);
+      const dejaDitDans = (mot) => caracteristiques.some(([k]) => k.toLowerCase().includes(mot));
+      const identite = [
+        ['Désignation', e.designation || ''],
+        ['Catégorie', CATEGORIES[e.categorie]?.label || ''],
+        ...(e.surnom ? [['Surnom', e.surnom]] : []),
+        ...(e.serie_nom ? [['Série', e.serie_nom]] : []),
+        ['État du jour', ETATS[e.etat]?.label || ''],
+        ...(e.constructeur && !dejaDitDans('constructeur') ? [['Constructeur', e.constructeur]] : []),
+        ...(e.annee && !dejaDitDans('année') ? [['Année', String(e.annee)]] : []),
+      ];
+
+      const blob = fichePdf({
+        titre: `${e.designation}${e.surnom ? ` « ${e.surnom} »` : ''}`,
+        sousTitre: `Chemin de fer de la Vendée · fiche éditée le ${jour(new Date())}`,
+        resume: [
+          { valeur: ouvertes.length, libelle: ouvertes.length > 1 ? 'problèmes en cours' : 'problème en cours' },
+          { valeur: ouvertes.filter((p) => p.gravite === 'bloquante').length, libelle: 'bloquants' },
+          { valeur: anciennes.length, libelle: 'réparés à ce jour' },
+        ],
+        sections: [
+          { titre: 'Identification', paires: identite },
+          ...(e.notes ? [{ titre: 'Remarque', texte: e.notes }] : []),
+          { titre: 'Caractéristiques', paires: caracteristiques },
+          { titre: 'Problèmes en cours', colonnes, lignes: ouvertes.map(ligne), vide: 'Aucun problème en cours.' },
+          { titre: 'Historique des réparations', colonnes, lignes: anciennes.map(ligne), vide: 'Aucune réparation enregistrée.' },
+        ],
+        pied: 'CFV Atelier · Chemin de fer de la Vendée',
+      });
+
+      const nomFichier = `CFV-${(e.designation || 'engin').replace(/[^\w]+/g, '-')}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      const fichier = new File([blob], nomFichier, { type: 'application/pdf' });
+      let partage = false;
+      try {
+        if (navigator.canShare?.({ files: [fichier] })) { await navigator.share({ files: [fichier], title: nomFichier }); partage = true; }
+      } catch (err) { if (err?.name === 'AbortError') partage = true; }
+      if (!partage) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url; a.download = nomFichier; a.rel = 'noopener';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 20000);
+      }
+    } catch (err) {
+      toast(err?.message || "La fiche n'a pas pu être créée.");
+    } finally { bouton.disabled = false; }
+  };
 
   const contenu = el.querySelector('#contenu');
   const maj = () => {
