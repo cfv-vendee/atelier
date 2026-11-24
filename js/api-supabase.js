@@ -279,6 +279,20 @@ export function creerApi({ url, cle }) {
     async majMembre(id, champs) { verif(await sb.from('profils').update(champs).eq('id', id)); },
     async majEngin(id, champs) { exigerId(id, 'Engin'); verif(await sb.from('engins').update(champs).eq('id', id)); },
     async ajouterEngin(champs) { return verif(await sb.from('engins').insert(champs).select('id').single()).id; },
+    // Suppression définitive : les signalements de l'engin (et leurs photos) partent avec lui.
+    // La clé étrangère des pannes interdit de supprimer l'engin tant qu'il en reste.
+    async supprimerEngin(id) {
+      exigerId(id, 'Engin');
+      const pannes = verif(await sb.from('pannes').select('id').eq('engin_id', id)) || [];
+      if (pannes.length) {
+        const ids = pannes.map((p) => p.id);
+        const chemins = (verif(await sb.from('photos').select('chemin').in('panne_id', ids)) || []).map((p) => p.chemin);
+        if (chemins.length) verif(await sb.storage.from('photos').remove(chemins));
+        verif(await sb.from('pannes').delete().in('id', ids));
+      }
+      verif(await sb.from('engins').delete().eq('id', id));
+      cache.vider();
+    },
     async supprimerPanne(id) {
       exigerId(id, 'Panne');
       const chemins = (verif(await sb.from('photos').select('chemin').eq('panne_id', id)) || []).map((p) => p.chemin);

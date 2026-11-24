@@ -109,7 +109,7 @@ export function toast(message) {
 }
 
 // Fenêtre en bas d'écran. Renvoie { el, fermer }.
-export function feuille(titre, contenu) {
+export function feuille(titre, contenu, { focusChamp = true } = {}) {
   const voile = document.createElement('div');
   voile.className = 'voile';
   voile.innerHTML = `<div class="feuille" role="dialog" aria-modal="true" aria-label="${esc(titre)}"><h2>${esc(titre)}</h2>${contenu}</div>`;
@@ -119,7 +119,11 @@ export function feuille(titre, contenu) {
   voile.addEventListener('click', (e) => { if (e.target === voile) fermer(); });
   document.addEventListener('keydown', echap);
   document.body.append(voile);
-  voile.querySelector('input, textarea, select, button')?.focus();
+  // Sans focusChamp, on met le focus sur la fenêtre elle-même : la lecture d'écran suit, mais le
+  // clavier du téléphone ne s'ouvre pas tout seul sur le premier champ de texte.
+  const dialogue = voile.querySelector('.feuille');
+  if (focusChamp) voile.querySelector('input, textarea, select, button')?.focus();
+  else { dialogue.tabIndex = -1; dialogue.focus(); }
   return { el: voile.querySelector('.feuille'), fermer };
 }
 

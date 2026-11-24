@@ -19,8 +19,8 @@ export async function afficher(ctx) {
       ${e.surnom ? `<div class="aide" style="font-size:15px">dit${e.categorie === 'vapeur' ? 'e' : ''} « ${esc(e.surnom)} »</div>` : ''}
       <div>${pastille(ETATS[e.etat])}</div>
     </div>
-    <div class="${peutSignaler(moi) ? 'btns' : ''}" style="${peutSignaler(moi) ? '' : 'display:flex;flex-direction:column'}">
-      ${peutSignaler(moi) ? `<a class="btn" href="#/signaler?engin=${e.id}">${icone('plus', 20)}Signaler</a>` : ''}
+    ${peutSignaler(moi) ? `<a class="btn plein" href="#/signaler?engin=${e.id}">${icone('plus', 20)}Signaler</a>` : ''}
+    <div class="btns">
       <button class="btn second" id="qr">${icone('qr', 20)}QR code</button>
       <button class="btn second" id="fiche-pdf">${icone('envoi', 20)}Fiche PDF</button>
     </div>
@@ -145,8 +145,11 @@ export function formulaireEngin(ctx, e = null) {
     ${nouveau ? '' : `<label style="display:flex;align-items:center;gap:10px;min-height:44px;font-weight:600"><input type="checkbox" id="retire" style="width:22px;height:22px">
       Retirer cet engin du parc (vendu, ferraillé…) : il disparaît des listes, son historique est gardé</label>`}
     <p class="erreur" id="err" role="alert"></p>
-    <div class="btns"><button class="btn neutre" id="annuler">Annuler</button><button class="btn" id="ok">Enregistrer</button></div>`);
+    ${nouveau ? '' : '<button class="btn danger plein" id="supprimer">Supprimer définitivement</button>'}
+    <div class="btns"><button class="btn neutre" id="annuler">Annuler</button><button class="btn" id="ok">Enregistrer</button></div>`,
+    { focusChamp: false });
   f.querySelector('#annuler').onclick = fermer;
+  f.querySelector('#supprimer')?.addEventListener('click', () => demanderSuppression(ctx, e, fermer));
   f.querySelector('#ok').onclick = async (ev) => {
     const val = (id) => f.querySelector(id).value.trim();
     const designation = val('#des');
@@ -168,5 +171,37 @@ export function formulaireEngin(ctx, e = null) {
         ctx.aller(champs.actif === false ? 'materiel' : 'engin/' + e.id, { remplacer: champs.actif === false });
       }
     } catch (x) { f.querySelector('#err').textContent = x.message; ev.target.disabled = false; }
+  };
+}
+
+
+// Suppression définitive d'un engin : on explique ce qui disparaît, puis on fait écrire SUPPRIMER.
+function demanderSuppression(ctx, e, fermerFormulaire) {
+  const { el: c, fermer } = feuille(`Supprimer ${nomEngin(e)} ?`, `
+    <p class="aide" style="margin:0">Cette suppression est <strong>définitive</strong> : l'engin disparaît, ainsi que
+      tous ses signalements et leurs photos. Pour garder l'historique, utilisez plutôt
+      « Retirer cet engin du parc » dans la fiche.</p>
+    <div class="champ"><label for="mot">Pour confirmer, écrivez <strong>SUPPRIMER</strong></label>
+      <input class="saisie" id="mot" autocapitalize="characters" autocorrect="off" spellcheck="false" placeholder="SUPPRIMER"></div>
+    <p class="erreur" id="err2" role="alert"></p>
+    <div class="btns"><button class="btn neutre" id="non">Annuler</button>
+      <button class="btn danger" id="oui" disabled>Supprimer</button></div>`, { focusChamp: false });
+
+  const mot = c.querySelector('#mot');
+  const oui = c.querySelector('#oui');
+  mot.addEventListener('input', () => { oui.disabled = mot.value.trim().toUpperCase() !== 'SUPPRIMER'; });
+  c.querySelector('#non').onclick = fermer;
+  oui.onclick = async (ev) => {
+    if (mot.value.trim().toUpperCase() !== 'SUPPRIMER') return;
+    ev.target.disabled = true;
+    try {
+      await ctx.api.supprimerEngin(e.id);
+      fermer(); fermerFormulaire();
+      toast('Engin supprimé');
+      ctx.aller('materiel', { remplacer: true });
+    } catch (x) {
+      c.querySelector('#err2').textContent = x.message;
+      ev.target.disabled = false;
+    }
   };
 }

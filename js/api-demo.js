@@ -219,6 +219,15 @@ export function creerApi() {
       d.engins.push({ id, serie_id: null, fiche: [], notes: null, photo: null, actif: true, ordre: Math.max(...d.engins.map((e) => e.ordre)) + 1, surnom: null, constructeur: null, annee: null, ...champs });
       sauver(); return id;
     },
+    async supprimerEngin(id) {
+      exiger(moi()?.est_admin);
+      const pannes = d.pannes.filter((p) => p.engin_id === id).map((p) => p.id);
+      d.pannes = d.pannes.filter((p) => p.engin_id !== id);
+      d.evenements = (d.evenements || []).filter((v) => !pannes.includes(v.panne_id));
+      d.photos = (d.photos || []).filter((f) => !pannes.includes(f.panne_id));
+      d.engins = d.engins.filter((e) => e.id !== id);
+      sauver();
+    },
     async supprimerPanne(id) {
       exiger(moi()?.est_admin);
       d.pannes = d.pannes.filter((p) => p.id !== id);
