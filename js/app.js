@@ -1,5 +1,6 @@
 // Démarrage, navigation entre écrans et session.
 import { CONFIG } from './config.js';
+import { VERSION } from './version.js';
 import { esc, icone, toast, peutInspecter } from './ui.js';
 import { creerEnvois } from './envois.js';
 
@@ -143,8 +144,26 @@ document.addEventListener('visibilitychange', () => { if (document.visibilitySta
 setInterval(synchroniser, 60000);
 setTimeout(() => envois.lister().then((l) => { nbEnAttente = l.length; majBandeau(); synchroniser(); }).catch(() => {}), 1500);
 
+// Mise à jour : on vérifie activement à chaque ouverture et à chaque retour dans l'appli (sinon le
+// navigateur ne revérifie sw.js que de temps en temps), puis on recharge une seule fois quand la
+// nouvelle version a pris le relais, avec un petit message pour confirmer que c'est fait.
+if (sessionStorage.getItem('atelier-maj')) {
+  sessionStorage.removeItem('atelier-maj');
+  setTimeout(() => toast(`Nouvelle version installée (${VERSION})`), 400);
+}
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
-  navigator.serviceWorker.register('sw.js').catch(() => {});
+  const dejaControle = !!navigator.serviceWorker.controller;
+  let recharge = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!dejaControle || recharge) return;
+    recharge = true;
+    sessionStorage.setItem('atelier-maj', '1');
+    location.reload();
+  });
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then((reg) => {
+    reg.update().catch(() => {});
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') reg.update().catch(() => {}); });
+  }).catch(() => {});
 }
 // Appui sur une notification alors que l'appli est déjà ouverte : aller à la fiche concernée.
 navigator.serviceWorker?.addEventListener('message', (e) => {

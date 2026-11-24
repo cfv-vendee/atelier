@@ -2,6 +2,7 @@ import { esc, icone, ROLES, feuille, toast, avatar } from '../ui.js';
 import { lignePanne } from './accueil.js';
 import { recadrer } from '../recadrage.js';
 import * as notifications from '../notifications.js';
+import { VERSION } from '../version.js';
 
 export async function afficher(ctx) {
   const { api, moi } = ctx;
@@ -27,6 +28,7 @@ export async function afficher(ctx) {
     <div class="carte pad notifs" id="notifs"><p class="aide" style="margin:0">Chargement…</p></div>
     ${api.demo ? '' : '<button class="btn neutre" id="mdp">Changer mon mot de passe</button>'}
     <button class="btn danger" id="sortir">Se déconnecter</button>
+    <p style="text-align:center;color:var(--gris-clair);font-size:12px;margin:0">CFV Atelier · version ${VERSION}</p>
   </div>`);
   if (!el) return;
   el.querySelector('#sortir').onclick = async () => {
