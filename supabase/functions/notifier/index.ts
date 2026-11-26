@@ -1,5 +1,5 @@
 // Notifications sur le téléphone (Web Push).
-// Appelée par la base (clé interne « x-cfv-cle ») à chaque nouveau signalement, prise en charge ou réparation,
+// Appelée par la base (clé interne « x-cfv-cle ») à chaque nouveau signalement, prise en charge, réparation ou gravité relevée,
 // ou par un membre connecté pour s'envoyer une notification d'essai.
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { envoyer, b64u } from "./webpush.js";
@@ -103,8 +103,31 @@ Deno.serve(async (req) => {
     }
 
     if (corps.table === "evenements") {
-      const { data: ev } = await admin.from("evenements").select("id, type, auteur_id, panne_id").eq("id", corps.id).single();
+      const { data: ev } = await admin.from("evenements").select("id, type, auteur_id, panne_id, texte").eq("id", corps.id).single();
       if (!ev) return reponse({ erreur: "Événement introuvable." }, 404);
+
+      // Gravité relevée jusqu'à « bloquante » : on prévient les responsables, comme pour une panne
+      // signalée bloquante d'emblée. Les baisses de gravité ne notifient personne.
+      if (ev.type === "gravite") {
+        const [ancienne, nouvelle] = String(ev.texte ?? "").split("\n")[0].split(" → ");
+        if (nouvelle !== "Bloquante") return reponse({ destinataires: 0, ignore: true });
+        const { data: p } = await admin.from("pannes")
+          .select("id, cible, gravite, titre, element, pk, engin:engins(designation, surnom)").eq("id", ev.panne_id).single();
+        if (!p || p.gravite !== "bloquante") return reponse({ destinataires: 0, ignore: true });   // rebaissée entre-temps
+        const responsable = (m: any) => m.est_admin ||
+          (p.cible === "voie" ? m.referent_voie : ["conducteur_technicien", "technicien"].includes(m.role));
+        // Celui qui a changé la gravité le sait déjà.
+        const ids = actifs.filter((m) => m.id !== ev.auteur_id && responsable(m) && veut(m, "bloquantes")).map((m) => m.id);
+        const sujet = p.cible === "voie" ? `Voie · ${ELEMENTS[p.element] ?? "Voie"}${pk(p.pk)}`
+          : `${(p as any).engin?.designation ?? "Matériel"}${(p as any).engin?.surnom ? ` « ${(p as any).engin.surnom} »` : ""}`;
+        const qui = nomCourt(actifs.find((m) => m.id === ev.auteur_id) ?? null);
+        const r = await prevenir(ids, {
+          titre: `⚠ Passée en bloquante · ${sujet}`,
+          corps: `${p.titre} — ${ancienne} → Bloquante, modifié par ${qui}`,
+          url: `#/panne/${p.id}`, tag: `bloquante-${p.id}`,
+        }, "high");
+        return reponse({ destinataires: ids.length, ...r });
+      }
       const { data: p } = await admin.from("pannes").select("id, titre, auteur_id").eq("id", ev.panne_id).single();
       const auteur = actifs.find((m) => m.id === p?.auteur_id);
       // L'auteur du signalement suit son signalement (sauf s'il a fait l'action lui-même).
@@ -133,7 +156,12 @@ Deno.serve(async (req) => {
       const ids = actifs.filter((m) => responsable(m) && veut(m, "bloquantes")).map((m) => m.id);
       const sujet = p.cible === "voie" ? `Voie · ${ELEMENTS[p.element] ?? "Voie"}${pk(p.pk)}`
         : `${(p as any).engin?.designation ?? "Matériel"}${(p as any).engin?.surnom ? ` « ${(p as any).engin.surnom} »` : ""}`;
-      const jours = Math.max(1, Math.floor((Date.now() - new Date(p.created_at).getTime()) / 86400000));
+      // « Depuis » : à partir du moment où la panne est devenue bloquante (signalement, ou dernière hausse de gravité).
+      const { data: hausses } = await admin.from("evenements").select("created_at, texte")
+        .eq("panne_id", p.id).eq("type", "gravite").order("created_at", { ascending: false });
+      const hausse = (hausses ?? []).find((h: any) => String(h.texte ?? "").split("\n")[0].endsWith("→ Bloquante"));
+      const depuisLe = Math.max(new Date(p.created_at).getTime(), hausse ? new Date(hausse.created_at).getTime() : 0);
+      const jours = Math.max(1, Math.floor((Date.now() - depuisLe) / 86400000));
       const depuis = jours === 1 ? "depuis hier" : `depuis ${jours} jours`;
       const r = await prevenir(ids, {
         titre: `⏰ Toujours personne · ${sujet}`,
