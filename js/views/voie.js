@@ -1,14 +1,11 @@
 import { esc, icone, pastille, GRAVITES, STATUTS, ELEMENTS, formatPk, quand, peutSignaler, peutInspecter, LIGNE } from '../ui.js';
 import { tourneeEnCours, ligneTournee } from './tournee.js';
-import { voieConfiguree } from './releve.js';
 
 let voirReparees = false;
 
 export async function afficher(ctx) {
   const { api, moi } = ctx;
-  const [toutes, tournees, params] = await Promise.all([api.pannes({ cible: 'voie' }), api.tournees({ limite: 10 }).catch(() => []),
-    peutInspecter(moi) ? api.parametres().catch(() => ({})) : {}]);
-  const releve = peutInspecter(moi) && !voieConfiguree(params);
+  const [toutes, tournees] = await Promise.all([api.pannes({ cible: 'voie' }), api.tournees({ limite: 10 }).catch(() => [])]);
   const active = peutInspecter(moi) ? tourneeEnCours(moi.id) : null;
   const el = ctx.rendre(`
   <div class="entete"><h1>La voie</h1><div class="aide" style="font-size:14px">Les Herbiers – Mortagne-sur-Sèvre · PK ${LIGNE.pkDebut} à ${LIGNE.pkFin}</div></div>
@@ -16,8 +13,6 @@ export async function afficher(ctx) {
     ${active ? `<a class="btn grand" href="#/tournee" style="background:var(--orange)">${icone('voie')}Reprendre la tournée en cours</a>`
       : peutInspecter(moi) ? `<a class="btn grand" href="#/tournee">${icone('voie')}Démarrer une tournée d'inspection</a>` : ''}
     ${peutSignaler(moi) ? `<a class="btn second" href="#/signaler?cible=voie">${icone('plus', 20)}Signaler un problème ponctuel</a>` : ''}
-    ${releve ? `<a class="carte pad lien-carte" href="#/releve"><b>${icone('pin', 20)} Configuration de la voie : relevé des repères PK</b>
-      <span class="aide">Réservé aux référents voie et aux administrateurs. À faire une fois, sur le terrain, pour le plan et le calcul automatique du PK.</span></a>` : ''}
     <a class="carte pad lien-carte" href="#/carte"><b>${icone('pin', 20)} Plan de la ligne</b>
       <span class="aide">Tracé, PK, gares, passages à niveau, évitements, tiroirs et problèmes en cours, sur une carte à déplacer et à zoomer.</span></a>
     <div class="segments" role="group" aria-label="Affichage">
