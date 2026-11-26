@@ -1,4 +1,4 @@
-import { esc, icone, pastille, GRAVITES, STATUTS, ELEMENTS, formatPk, quand, peutSignaler, peutInspecter } from '../ui.js';
+import { esc, icone, pastille, GRAVITES, STATUTS, ELEMENTS, formatPk, quand, peutSignaler, peutInspecter, LIGNE } from '../ui.js';
 import { tourneeEnCours, ligneTournee } from './tournee.js';
 import { voieConfiguree } from './releve.js';
 
@@ -11,7 +11,7 @@ export async function afficher(ctx) {
   const releve = peutInspecter(moi) && !voieConfiguree(params);
   const active = peutInspecter(moi) ? tourneeEnCours(moi.id) : null;
   const el = ctx.rendre(`
-  <div class="entete"><h1>La voie</h1><div class="aide" style="font-size:14px">Mortagne-sur-Sèvre → Les Herbiers · 22 km</div></div>
+  <div class="entete"><h1>La voie</h1><div class="aide" style="font-size:14px">Mortagne-sur-Sèvre – Les Herbiers · PK ${LIGNE.pkDebut} à ${LIGNE.pkFin}</div></div>
   <div class="page" style="padding-top:8px">
     ${active ? `<a class="btn grand" href="#/tournee" style="background:var(--orange)">${icone('voie')}Reprendre la tournée en cours</a>`
       : peutInspecter(moi) ? `<a class="btn grand" href="#/tournee">${icone('voie')}Démarrer une tournée d'inspection</a>` : ''}

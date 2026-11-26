@@ -1,7 +1,7 @@
 # CFV Atelier
 
 Application réservée aux membres du Chemin de fer de la Vendée : signalement et suivi des pannes
-du matériel roulant et de la voie (Mortagne-sur-Sèvre → Les Herbiers, 22 km).
+du matériel roulant et de la voie (Mortagne-sur-Sèvre – Les Herbiers, PK 37 à 55).
 
 Application web installable (PWA), sans étape de compilation : HTML, CSS et JavaScript.
 Données et comptes : Supabase (base PostgreSQL, authentification, stockage des photos).

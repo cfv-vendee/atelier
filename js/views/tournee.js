@@ -1,6 +1,6 @@
 // Tournée d'inspection de la voie : démarrage, suivi PK par PK, défauts, compte rendu.
 // La tournée en cours est gardée dans le téléphone : elle survit à une coupure de réseau ou à la fermeture de l'appli.
-import { esc, icone, pastille, GRAVITES, ELEMENTS, formatPk, feuille, toast, champPhotos, brancherPhotos, peutInspecter } from '../ui.js';
+import { esc, icone, pastille, GRAVITES, ELEMENTS, formatPk, feuille, toast, champPhotos, brancherPhotos, peutInspecter, LIGNE, pkDansLaLigne, messagePkHorsLigne } from '../ui.js';
 import { lignePanne } from './accueil.js';
 
 // ───── État local de la tournée en cours ─────
@@ -82,8 +82,8 @@ function demarrage(ctx) {
   <form id="f" novalidate><div class="page">
     <p class="aide" style="margin:0;font-size:15px">Indiquez la portion à inspecter. Vous avancerez ensuite PK par PK : chaque portion est notée « vue », « non inspectée » ou porte un défaut.</p>
     <div class="btns">
-      <label class="champ"><span class="etiquette">PK de départ</span><input class="saisie" id="de" inputmode="decimal" value="0"></label>
-      <label class="champ"><span class="etiquette">PK d'arrivée</span><input class="saisie" id="a" inputmode="decimal" value="22"></label>
+      <label class="champ"><span class="etiquette">PK de départ</span><input class="saisie" id="de" inputmode="decimal" value="${LIGNE.pkDebut}"></label>
+      <label class="champ"><span class="etiquette">PK d'arrivée</span><input class="saisie" id="a" inputmode="decimal" value="${LIGNE.pkFin}"></label>
     </div>
     <div class="champ"><label for="part">Participants <span class="aide">(facultatif)</span></label>
       <input class="saisie" id="part" placeholder="ex. Jean, Sophie" value=""></div>
@@ -95,7 +95,8 @@ function demarrage(ctx) {
   f.onsubmit = async (e) => {
     e.preventDefault();
     const de = lirePk(f.de.value), a = lirePk(f.a.value);
-    if (de == null || a == null) { el.querySelector('#err').textContent = 'Les PK doivent être des nombres, par exemple 0 et 22.'; return; }
+    if (de == null || a == null) { el.querySelector('#err').textContent = `Les PK doivent être des nombres, par exemple ${LIGNE.pkDebut} et ${LIGNE.pkFin}.`; return; }
+    if (!pkDansLaLigne(de) || !pkDansLaLigne(a)) { el.querySelector('#err').textContent = messagePkHorsLigne; return; }
     if (de === a) { el.querySelector('#err').textContent = 'Le PK de départ et le PK d’arrivée doivent être différents.'; return; }
     const t = { id: crypto.randomUUID(), pk_debut: de, pk_fin: a, participants: f.part.value.trim() || null, debut: new Date().toISOString(), position: de, journal: [] };
     garder(ctx.moi.id, t);
@@ -148,12 +149,13 @@ function enCours(ctx, t) {
   const lireCible = () => { const v = lirePk(champ.value); return v; };
   el.querySelectorAll('[data-pas]').forEach((bt) => (bt.onclick = () => {
     const v = lireCible() ?? t.position;
-    champ.value = pkTexte(Math.max(0, arrondi(v + Number(bt.dataset.pas))));
+    champ.value = pkTexte(Math.min(LIGNE.pkFin, Math.max(LIGNE.pkDebut, arrondi(v + Number(bt.dataset.pas)))));
   }));
   const verifierAvance = () => {
     err.textContent = '';
     cible = lireCible();
-    if (cible == null) { err.textContent = 'Le PK doit être un nombre, par exemple 4,6.'; return false; }
+    if (cible == null) { err.textContent = 'Le PK doit être un nombre, par exemple 41,6.'; return false; }
+    if (!pkDansLaLigne(cible)) { err.textContent = messagePkHorsLigne; return false; }
     if (cible === t.position) { err.textContent = `Vous êtes encore au PK ${pkTexte(t.position)} : indiquez le PK où vous êtes arrivé.`; return false; }
     return true;
   };

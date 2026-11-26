@@ -15,7 +15,7 @@ Actions mises de côté le 23/11/2026, à reprendre quand ce sera possible.
 
 ## Données de l'association
 - [ ] Mise en route du module Voie (plan + calcul automatique du PK par GPS) — suivre la notice « Module Voie — notice de mise en route » (https://claude.ai/artifact/VRqfoi2Gqhnt3CC6q6pJL6) :
-  - [ ] Choisir avec le président la référence des PK (PK des bornes SNCF ou PK 0 à Mortagne) et le sens
+  - [x] Référence des PK : bornes SNCF, du PK 37 au PK 55 (reste à confirmer le sens, croissant depuis Mortagne ou depuis Les Herbiers)
   - [ ] Vérifier le tracé de la ligne préparé par Claude (début/fin, voies annexes)
   - [ ] Relever sur le terrain les repères PK (une borne par km + extrémités) avec l'écran *Voie → Configuration de la voie : relevé des repères PK* (ou à la main : PK, latitude, longitude, précision, photo)
   - [ ] Relever les points remarquables : gares, PN numérotés, ponts/viaducs, aiguillages, heurtoirs, zones sans réseau

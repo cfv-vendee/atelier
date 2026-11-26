@@ -210,7 +210,7 @@ export async function afficher(ctx) {
     el.querySelectorAll('[data-cote]').forEach((b) => b.setAttribute('aria-pressed', b.dataset.cote === (choix.cote || '')));
     $('#pk-aide').textContent = t.pk ? `(${t.aide})` : '(facultatif : seulement s’il est affiché sur place)';
     $('#nom').placeholder = t.nom || 'Facultatif';
-    $('#pk').placeholder = choix.type === 'borne_km' && suivant != null && suivant >= 0 ? `Suivant probable : ${pkTxt(suivant)}` : 'Ex. 5 ou 5,400';
+    $('#pk').placeholder = choix.type === 'borne_km' && suivant != null && suivant >= 0 ? `Suivant probable : ${pkTxt(suivant)}` : 'Ex. 41 ou 41,400';
   };
   el.querySelectorAll('[data-type]').forEach((b) => (b.onclick = () => { choix.type = b.dataset.type; majChoix(); }));
   el.querySelectorAll('[data-cote]').forEach((b) => (b.onclick = () => { choix.cote = b.dataset.cote || null; majChoix(); }));
@@ -259,7 +259,7 @@ export async function afficher(ctx) {
     err.textContent = '';
     const t = TYPES_REPERE[choix.type], r = m.resultat;
     const pk = lirePk($('#pk').value);
-    if (Number.isNaN(pk) || pk > 9999) { err.textContent = 'PK invalide : écrivez par exemple 5 ou 5,400.'; return; }
+    if (Number.isNaN(pk) || pk > 9999) { err.textContent = 'PK invalide : écrivez par exemple 41 ou 41,400.'; return; }
     if (t.pk && pk == null) { err.textContent = 'Indiquez le PK écrit sur la borne.'; $('#pk').focus(); return; }
     if (!r) { err.textContent = 'Mesurez d’abord la position.'; return; }
     if (r.precision_m > PRECISION_FAIBLE && !confirmeFaible) {
@@ -341,7 +341,7 @@ function corriger(ctx, r) {
   el.querySelector('#ok').onclick = async (ev) => {
     const type = v('#c-type'), pk = lirePk(v('#c-pk'));
     const err = el.querySelector('#err');
-    if (Number.isNaN(pk) || pk > 9999) { err.textContent = 'PK invalide : écrivez par exemple 5 ou 5,400.'; return; }
+    if (Number.isNaN(pk) || pk > 9999) { err.textContent = 'PK invalide : écrivez par exemple 41 ou 41,400.'; return; }
     if (TYPES_REPERE[type].pk && pk == null) { err.textContent = 'Une borne doit avoir son PK.'; return; }
     ev.target.disabled = true;
     try {

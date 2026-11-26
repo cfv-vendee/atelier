@@ -34,12 +34,12 @@ function donneesInitiales() {
   };
   panne({ cible: 'materiel', engin_id: id('X 3800'), titre: 'Éclairage cabine', description: 'Plafonnier cabine côté 1 éteint.', gravite: 'mineure', auteur_id: 'm-cond', created_at: ilya(240) },
     [{ auteur: 'm-tech', type: 'reparee', texte: 'Ampoule remplacée.', date: ilya(200) }]);
-  panne({ cible: 'voie', element: 'pn', pk: 1.2, titre: 'Barrière de PN lente à descendre', description: 'La barrière met plusieurs secondes de plus que d’habitude.', gravite: 'surveiller', auteur_id: 'm-cond', created_at: ilya(170) });
+  panne({ cible: 'voie', element: 'pn', pk: 38.2, titre: 'Barrière de PN lente à descendre', description: 'La barrière met plusieurs secondes de plus que d’habitude.', gravite: 'surveiller', auteur_id: 'm-cond', created_at: ilya(170) });
   panne({ cible: 'materiel', engin_id: id('Fourgon B3Dt'), titre: 'Porte de compartiment bloquée', description: 'La porte du 2e compartiment ne coulisse plus.', gravite: 'surveiller', auteur_id: 'm-ct', created_at: ilya(96) });
   panne({ cible: 'materiel', engin_id: id('030 T 6'), titre: 'Fuite injecteur gauche', description: 'Fuite importante au raccord de l’injecteur gauche en montée en pression. Machine rentrée au dépôt.', gravite: 'bloquante', auteur_id: 'm-ct', created_at: ilya(26) },
     [{ auteur: 'm-tech', type: 'prise_en_charge', texte: 'Je m’en occupe.', date: ilya(23) },
      { auteur: 'm-tech', type: 'intervention', texte: 'Raccord démonté, joint cuivre écrasé.\nJoint neuf commandé, remontage prévu samedi.', date: ilya(5) }]);
-  panne({ cible: 'voie', element: 'ballast', pk: 12.3, titre: 'Ballast affaissé après orage', description: 'Affaissement sur une dizaine de mètres côté gauche.', gravite: 'bloquante', auteur_id: 'm-tech', created_at: ilya(2) });
+  panne({ cible: 'voie', element: 'ballast', pk: 49.3, titre: 'Ballast affaissé après orage', description: 'Affaissement sur une dizaine de mètres côté gauche.', gravite: 'bloquante', auteur_id: 'm-tech', created_at: ilya(2) });
   return d;
 }
 
