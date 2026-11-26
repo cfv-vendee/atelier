@@ -15,14 +15,14 @@ export async function afficher(ctx) {
   const monter = (etat) => {
     plan?.destroy();
     plan = monterCarte(zone, { pannes, corrections, peutModifier: peutInspecter(moi), etat, choisi: etat?.selection || null,
-      onSauver: async (e) => { await api.sauverVoieElement(e); await rafraichir(); },
-      onSupprimer: async (id) => { await api.supprimerVoieElement(id); await rafraichir(); } });
+      onSauver: async (e) => { await api.sauverVoieElement(e); await rafraichir(e.masque === true ? 'Élément retiré. Retrouvez-le dans « Éléments retirés de la carte ».' : e.masque === false && !('pk' in e) && !('nom' in e) && !('genre' in e) && !('pn_type' in e) ? 'Élément rétabli sur la carte.' : 'Plan mis à jour.'); },
+      onSupprimer: async (id) => { await api.supprimerVoieElement(id); await rafraichir('Élément supprimé.'); } });
   };
-  async function rafraichir() {
+  async function rafraichir(message = 'Plan mis à jour.') {
     const etat = plan?.etat();
     corrections = await api.voieElements().catch(() => corrections);
     monter(etat);
-    toast('Plan mis à jour');
+    toast(message);
   }
   monter(null);
   const id = ctx.params?.[0];

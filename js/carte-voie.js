@@ -88,7 +88,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
       <div class="cv-detail" hidden></div></div>
     <div class="cv-couches" role="group" aria-label="Éléments affichés">${COUCHES.map(([id, nom]) => `<button type="button" data-c="${id}" aria-pressed="${visibles[id]}">${esc(nom)}</button>`).join('')}</div>
     ${peutModifier ? `<div class="cv-edition"><button type="button" class="btn neutre" data-ajout>${'+'} Ajouter un ouvrage ou un PN</button>
-      ${retires.length ? `<button type="button" class="btn neutre" data-retablir>Rétablir ${retires.length} élément${retires.length > 1 ? 's' : ''} retiré${retires.length > 1 ? 's' : ''}</button>` : ''}</div>` : ''}
+      ${retires.length ? `<button type="button" class="btn neutre" data-retablir>Éléments retirés de la carte (${retires.length})</button>` : ''}</div>` : ''}
     <div class="cv-legende" aria-label="Légende">
       <span><i class="cv-l-pn" style="background:#175CD3"></i>PN automatique</span><span><i class="cv-l-pn" style="background:#3B7D3A"></i>PN agricole</span>
       <span><i class="cv-l-pn" style="background:#8A919C"></i>PN type non renseigné</span><span><i class="cv-l-li" style="background:#175CD3"></i>Évitement</span>
@@ -106,7 +106,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
     const cle = cleDe('ouvrage', o.c), c = corr.get(cle), defaut = o.genre === 'pont' && o.longueur >= 100 ? 'viaduc' : o.genre;
     return { ...o, cle, corr: c, genre: c?.genre || defaut, nom: c?.nom || o.nom, masque: !!c?.masque };
   }).filter((o) => !o.masque);
-  const pns = VOIE.pn.map((q) => { const cle = 'pn:' + q.nom, c = corr.get(cle); return { ...q, cle, corr: c, type: c?.pn_type || q.type, masque: !!c?.masque }; }).filter((q) => !q.masque);
+  const pns = VOIE.pn.map((q) => { const cle = 'pn:' + q.nom, c = corr.get(cle); return { ...q, cle, corr: c, type: c?.pn_type || q.type, pk: c?.pk != null ? Number(c.pk) : q.pk, deplace: c?.pk != null, masque: !!c?.masque }; }).filter((q) => !q.masque);
 
   // ── Tracé : annexes, ouvrages, puis ligne principale « façon rail » ──
   const gAnn = el('g', {}, gLignes);
@@ -142,7 +142,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
       el('circle', { r: 20, fill: 'transparent' }, n); el('rect', { x: -8, y: -8, width: 16, height: 16, rx: 4, class: 'cv-gare' }, n);
       texte(n, ga.nom, 13, 4, 'cv-t-gare'); } });
   });
-  pns.forEach((q) => { const [x, y] = monde(q.lng, q.lat); ajouter({ id: 'pn:' + q.nom, genre: 'pn', couche: 'pn', x, y, data: q, dessin: dessinPn(q) }); });
+  pns.forEach((q) => { const [x, y] = q.deplace ? pointAuPk(q.pk) : monde(q.lng, q.lat); ajouter({ id: 'pn:' + q.nom, genre: 'pn', couche: 'pn', x, y, data: q, dessin: dessinPn(q) }); });
   ajouts.filter((e) => e.genre === 'pn').forEach((e) => {
     const [x, y] = pointAuPk(Number(e.pk)), q = { nom: e.nom, pk: Number(e.pk), type: e.pn_type, cle: null, corr: e };
     ajouter({ id: 'ajout:' + e.id, genre: 'pn', couche: 'pn', x, y, data: q, dessin: dessinPn(q) });
@@ -326,24 +326,45 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   async function enregistrer(fn, fermer) {
     try { await fn(); fermer(); } catch (e) { toast(e.message || 'Enregistrement impossible.'); }
   }
-  function modifier(m) {
+  const pkTexte = (pk) => String(Math.round(Number(pk) * 100) / 100).replace('.', ',');
+  function modifier(m, b = {}) {
     const d = m.data, titre = m.genre === 'pn' ? d.nom : m.genre === 'annexe' ? LIB_ANNEXE[d.genre] : (d.nom || LIB_OUVRAGE[d.genre]);
-    let corps = '';
-    if (m.genre === 'pn') corps = `<p class="aide">Type du passage à niveau</p>${choix('type', [['auto', 'Automatique'], ['agricole', 'Agricole']], ['auto', 'agricole'].includes(d.type) ? d.type : '')}`;
-    if (m.genre === 'annexe') corps = `<p class="aide">Classement de cette voie</p>${choix('genre', [['evitement', 'Évitement'], ['tiroir', 'Tiroir']], d.genre)}`;
-    if (m.genre === 'ouvrage') corps = `<label class="champ"><span class="etiquette">Nom (facultatif)</span><input class="saisie" id="nom" maxlength="120" value="${esc(d.nom || '')}"></label>
-      <p class="aide">Type d’ouvrage</p>${choix('genre', [['viaduc', 'Viaduc'], ['pont', 'Pont'], ['tunnel', 'Tunnel']], d.genre)}`;
     const ajoute = !d.cle;     // élément ajouté à la main : on peut le supprimer ; sinon on peut seulement le retirer de la carte
+    const positionnable = m.genre === 'pn' || (m.genre === 'ouvrage' && ajoute);
+    const pkInitial = pkTexte(d.pk);
+    let corps = '';
+    if (ajoute && m.genre === 'pn') corps += `<label class="champ"><span class="etiquette">Nom</span><input class="saisie" id="nom" maxlength="120" value="${esc(b.nom ?? d.nom ?? '')}"></label>`;
+    if (m.genre === 'pn') corps += `<p class="aide">Type du passage à niveau</p>${choix('type', [['auto', 'Automatique'], ['agricole', 'Agricole']], b.type ?? (['auto', 'agricole'].includes(d.type) ? d.type : ''))}`;
+    if (m.genre === 'annexe') corps = `<p class="aide">Classement de cette voie</p>${choix('genre', [['evitement', 'Évitement'], ['tiroir', 'Tiroir']], d.genre)}`;
+    if (m.genre === 'ouvrage') corps = `<label class="champ"><span class="etiquette">Nom (facultatif)</span><input class="saisie" id="nom" maxlength="120" value="${esc(b.nom ?? d.nom ?? '')}"></label>
+      <p class="aide">Type d’ouvrage</p>${choix('genre', [['viaduc', 'Viaduc'], ['pont', 'Pont'], ['tunnel', 'Tunnel']], b.genre ?? d.genre)}`;
+    if (positionnable) corps += `<label class="champ"><span class="etiquette">PK</span><input class="saisie" id="pk" inputmode="decimal" value="${esc(b.pk ?? pkInitial)}"></label>
+      <button type="button" class="btn neutre" data-placer>Placer sur la carte</button>
+      ${d.deplace ? '<button type="button" class="btn neutre" data-origine>Remettre à l’emplacement d’origine</button>' : ''}`;
+    if (m.genre === 'ouvrage' && !ajoute) corps += '<p class="aide">Pour déplacer cet ouvrage : retirez-le de la carte, puis ajoutez-le à la bonne place.</p>';
     const { el: f, fermer } = feuille(titre, `${corps}<p class="erreur" id="err" role="alert"></p>
       <button type="button" class="btn grand" data-ok>Enregistrer</button>
       <button type="button" class="btn neutre" data-retirer>${ajoute ? 'Supprimer cet élément' : 'Retirer de la carte'}</button>`, { focusChamp: false });
     brancherChoix(f);
+    const etatSaisi = () => ({ nom: f.querySelector('#nom')?.value, type: m.genre === 'pn' ? lireChoix(f, 'type') : undefined, genre: m.genre === 'ouvrage' ? lireChoix(f, 'genre') : undefined, pk: f.querySelector('#pk')?.value });
+    f.querySelector('[data-placer]')?.addEventListener('click', () => {
+      const saisi = etatSaisi();
+      demarrerPlacement({ reprise: (pk) => modifier(m, { ...saisi, ...(pk != null ? { pk: pkTexte(pk) } : {}) }) });
+      fermer();
+    });
+    f.querySelector('[data-origine]')?.addEventListener('click', () => enregistrer(() => onSauver({ id: d.corr?.id, cle: d.cle, pk: null }), fermer));
     f.querySelector('[data-ok]').onclick = () => enregistrer(async () => {
       const base = d.cle ? { id: d.corr?.id, cle: d.cle } : { id: d.corr.id };
       const champs = {};
-      if (m.genre === 'pn') { champs.pn_type = lireChoix(f, 'type'); if (!champs.pn_type) throw new Error('Choisissez Automatique ou Agricole.'); }
+      if (m.genre === 'pn') { if (lireChoix(f, 'type')) champs.pn_type = lireChoix(f, 'type'); else if (ajoute) champs.pn_type = null; if (ajoute) { champs.nom = f.querySelector('#nom').value.trim(); if (!champs.nom) throw new Error('Donnez un nom au passage à niveau.'); } }
       if (m.genre === 'annexe') champs.genre = lireChoix(f, 'genre');
       if (m.genre === 'ouvrage') { champs.genre = lireChoix(f, 'genre'); champs.nom = f.querySelector('#nom').value.trim() || null; }
+      if (positionnable) {
+        const txt = f.querySelector('#pk').value.trim().replace(',', '.'), pk = Number(txt);
+        if (!txt || Number.isNaN(pk) || !pkDansLaLigne(pk)) throw new Error(messagePkHorsLigne);
+        if (ajoute || f.querySelector('#pk').value.trim() !== pkInitial) champs.pk = pk;      // PN d'origine : on ne l'enregistre que s'il a été changé
+      }
+      if (!ajoute && m.genre === 'pn' && champs.pn_type === undefined && champs.pk === undefined) throw new Error('Choisissez Automatique ou Agricole, ou changez la position.');
       await onSauver({ ...base, ...champs, masque: false });
     }, fermer);
     f.querySelector('[data-retirer]').onclick = () => enregistrer(async () => {
@@ -355,8 +376,8 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   const bandeauPlacement = conteneur.querySelector('.cv-placement');
   function demarrerPlacement(brouillon) { placement = brouillon; bandeauPlacement.hidden = false; detail.hidden = true; }
   function finirPlacement(pk) {
-    const brouillon = placement; placement = null; bandeauPlacement.hidden = true;
-    ajouterElement(pk != null ? { ...brouillon, pk: String(Math.round(pk * 100) / 100).replace('.', ',') } : brouillon);
+    const p = placement; placement = null; bandeauPlacement.hidden = true;
+    p.reprise(pk);
   }
   bandeauPlacement.querySelector('[data-annuler-placement]').addEventListener('click', () => finirPlacement(null));
   function toucherPlacement(clientX, clientY) {
@@ -376,7 +397,8 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
     brancherChoix(f);
     f.querySelector('[data-groupe="genre"]').addEventListener('click', () => { f.querySelector('#bloc-pn').hidden = lireChoix(f, 'genre') !== 'pn'; });
     f.querySelector('[data-placer]').onclick = () => {
-      demarrerPlacement({ genre: lireChoix(f, 'genre'), nom: f.querySelector('#nom').value, pk: f.querySelector('#pk').value, type: lireChoix(f, 'type') });
+      const saisi = { genre: lireChoix(f, 'genre'), nom: f.querySelector('#nom').value, pk: f.querySelector('#pk').value, type: lireChoix(f, 'type') };
+      demarrerPlacement({ reprise: (pk) => ajouterElement(pk != null ? { ...saisi, pk: pkTexte(pk) } : saisi) });
       fermer();
     };
     f.querySelector('[data-ok]').onclick = () => {
@@ -388,7 +410,18 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
     };
   }
   conteneur.querySelector('[data-ajout]')?.addEventListener('click', () => ajouterElement());
-  conteneur.querySelector('[data-retablir]')?.addEventListener('click', () => enregistrer(async () => { for (const c of retires) await onSauver({ id: c.id, masque: false }); }, () => {}));
+  const libelleRetire = (c) => {
+    if (c.cle.startsWith('pn:')) { const q = VOIE.pn.find((x) => 'pn:' + x.nom === c.cle); return { titre: c.cle.slice(3), detail: 'Passage à niveau' + (q ? ' · ' + formatPk(q.pk) : '') }; }
+    const a = ANNEXES.find((x) => cleDe('annexe', x.c) === c.cle); if (a) return { titre: LIB_ANNEXE[a.genre], detail: `Voie annexe · environ ${Math.round(longueur(a.m))} m` };
+    const o = OUVRAGES.find((x) => cleDe('ouvrage', x.c) === c.cle); if (o) return { titre: o.nom || LIB_OUVRAGE[o.genre], detail: `${LIB_OUVRAGE[o.genre]} · ${formatPk(o.pk)}` };
+    return { titre: 'Élément', detail: '' };
+  };
+  conteneur.querySelector('[data-retablir]')?.addEventListener('click', () => {
+    const { el: f, fermer } = feuille('Éléments retirés de la carte', `
+      <p class="aide">Ces éléments ont été retirés par un référent voie. Rétablir un élément le remet sur la carte tel qu’il était.</p>
+      ${retires.map((c, i) => { const l = libelleRetire(c); return `<div class="cv-retire"><div><b>${esc(l.titre)}</b><span>${esc(l.detail)}</span></div><button type="button" class="btn neutre" data-i="${i}">Rétablir</button></div>`; }).join('')}`, { focusChamp: false });
+    f.querySelectorAll('[data-i]').forEach((bt) => (bt.onclick = () => enregistrer(() => onSauver({ id: retires[Number(bt.dataset.i)].id, masque: false }), fermer)));
+  });
 
   new ResizeObserver(() => {
     if (!ajuste) { if (etat?.k) { k = etat.k; tx = etat.tx; ty = etat.ty; kMin = etat.kMin; ajuste = true; rendre(); if (selection) choisir(selection); } else ajuster(); }
