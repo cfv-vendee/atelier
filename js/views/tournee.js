@@ -86,12 +86,33 @@ function demarrage(ctx) {
       <label class="champ"><span class="etiquette">PK d'arrivée</span><input class="saisie" id="a" inputmode="decimal" value="${LIGNE.pkFin}"></label>
     </div>
     <div class="champ"><label for="part">Participants <span class="aide">(facultatif)</span></label>
-      <input class="saisie" id="part" placeholder="ex. Jean, Sophie" value=""></div>
+      <input class="saisie" id="part" placeholder="ex. Jean, Sophie" value="">
+      <button type="button" class="btn neutre" id="choisir-membres" style="margin-top:8px">${icone('profil', 20)}Choisir parmi les membres</button></div>
     <p class="erreur" id="err" role="alert"></p>
   </div>
   <div class="pied"><button class="btn plein" type="submit">${icone('voie', 20)}Démarrer la tournée</button></div></form>`);
   if (!el) return;
   const f = el.querySelector('#f');
+  // Liste déroulante des membres actifs : on coche autant de personnes que l'on veut, la saisie à la main reste possible.
+  el.querySelector('#choisir-membres').onclick = async () => {
+    let membres;
+    try { membres = (await ctx.api.membres()).filter((m) => m.actif && m.id !== ctx.moi.id); }
+    catch { toast('Liste des membres indisponible sans connexion : saisissez les noms à la main.'); return; }
+    const nom = (m) => `${m.prenom} ${m.nom}`.trim();
+    const saisis = f.part.value.split(',').map((x) => x.trim()).filter(Boolean);
+    const connus = new Set(membres.map(nom).map((x) => x.toLowerCase()));
+    const { el: sh, fermer } = feuille('Participants', `
+      ${membres.length ? `<div class="liste-cases" style="display:flex;flex-direction:column">${membres.map((m, i) =>
+        `<label style="display:flex;align-items:center;gap:12px;min-height:48px;font-weight:600"><input type="checkbox" data-i="${i}" ${saisis.some((x) => x.toLowerCase() === nom(m).toLowerCase()) ? 'checked' : ''} style="width:22px;height:22px">${esc(nom(m))}</label>`).join('')}</div>`
+        : '<p class="vide">Aucun autre membre actif.</p>'}
+      <button type="button" class="btn grand" data-ok>Valider</button>`, { focusChamp: false });
+    sh.querySelector('[data-ok]').onclick = () => {
+      const coches = [...sh.querySelectorAll('input:checked')].map((c) => nom(membres[Number(c.dataset.i)]));
+      const aMain = saisis.filter((x) => !connus.has(x.toLowerCase()));   // noms tapés à la main : conservés
+      f.part.value = [...coches, ...aMain].join(', ');
+      fermer();
+    };
+  };
   f.onsubmit = async (e) => {
     e.preventDefault();
     const de = lirePk(f.de.value), a = lirePk(f.a.value);
