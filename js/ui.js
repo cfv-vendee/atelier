@@ -89,11 +89,11 @@ export const roleTexte = (p) => {
   return [base, p.referent_voie ? 'référent voie' : '', p.est_admin ? 'admin' : ''].filter(Boolean).join(' · ');
 };
 export const nomPersonne = (p) => (p ? `${p.prenom || ''} ${p.nom ? p.nom.charAt(0) + '.' : ''}`.trim() || 'Membre' : 'Ancien membre');
-// Ligne Mortagne-sur-Sèvre – Les Herbiers : PK des bornes, du 37 au 55. Une demi-borne de tolérance
-// aux extrémités, pour les heurtoirs et les gares qui dépassent un peu.
-export const LIGNE = { pkDebut: 37, pkFin: 55 };
+// Ligne Les Herbiers – Mortagne-sur-Sèvre : PK de SNCF Réseau (ceux de Carto Tchoo), du 47 au 68 environ.
+// Une demi-borne de tolérance aux extrémités, pour les heurtoirs et les gares qui dépassent un peu.
+export const LIGNE = { pkDebut: 47, pkFin: 68 };
 export const pkDansLaLigne = (pk) => pk >= LIGNE.pkDebut - 0.5 && pk <= LIGNE.pkFin + 0.5;
-export const messagePkHorsLigne = `Le PK doit être compris entre ${LIGNE.pkDebut} et ${LIGNE.pkFin}, par exemple 41,3.`;
+export const messagePkHorsLigne = `Le PK doit être compris entre ${LIGNE.pkDebut} et ${LIGNE.pkFin}, par exemple 52,3.`;
 export const formatPk = (pk) => (pk == null || pk === '' ? '' : `PK ${String(Number(pk).toFixed(3)).replace(/\.?0+$/, '').replace('.', ',')}`);
 export const sujetPanne = (p) => (p.cible === 'materiel' ? nomEngin(p.engin) : `Voie · ${ELEMENTS[p.element] || ''}${p.pk != null ? ' · ' + formatPk(p.pk) : ''}`);
 

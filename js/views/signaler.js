@@ -35,7 +35,7 @@ export async function afficher(ctx) {
       <span class="etiquette" style="margin-top:8px">Où ?</span>
       <button type="button" class="btn second plein" id="gps">${icone('cible', 22)}Je suis sur place : enregistrer ma position</button>
       <p class="aide" id="gps-info" role="status"></p>
-      <label class="saisie pk" for="pk"><span>PK</span><input id="pk" inputmode="decimal" placeholder="ex. 41,3" autocomplete="off"></label>
+      <label class="saisie pk" for="pk"><span>PK</span><input id="pk" inputmode="decimal" placeholder="ex. 52,3" autocomplete="off"></label>
     </div>
 
     <div class="champ"><label for="titre">3. Le problème en quelques mots</label>
@@ -104,7 +104,7 @@ export async function afficher(ctx) {
       donnees.element = etat.element;
       const pk = f.pk.value.trim().replace(',', '.');
       if (pk) {
-        if (!/^\d{1,3}(\.\d{1,3})?$/.test(pk)) return (err.textContent = 'Le PK doit être un nombre, par exemple 41,3.');
+        if (!/^\d{1,3}(\.\d{1,3})?$/.test(pk)) return (err.textContent = 'Le PK doit être un nombre, par exemple 52,3.');
         if (!pkDansLaLigne(Number(pk))) return (err.textContent = messagePkHorsLigne);
         donnees.pk = Number(pk);
       }

@@ -15,7 +15,7 @@ Actions mises de côté le 23/11/2026, à reprendre quand ce sera possible.
 
 ## Données de l'association
 - [ ] Mise en route du module Voie (plan + calcul automatique du PK par GPS) — suivre la notice « Module Voie — notice de mise en route » (https://claude.ai/artifact/VRqfoi2Gqhnt3CC6q6pJL6) :
-  - [x] Référence des PK : bornes SNCF, du PK 37 au PK 55 (reste à confirmer le sens, croissant depuis Mortagne ou depuis Les Herbiers)
+  - [x] Référence des PK : ceux de SNCF Réseau / Carto Tchoo, du PK 47 (Les Herbiers) au PK 68 (Mortagne), croissants vers Mortagne. À corriger avec le relevé de terrain si besoin (les n° de PN 37 à 56 ne sont pas des PK)
   - [ ] Vérifier le tracé de la ligne préparé par Claude (début/fin, voies annexes)
   - [ ] Relever sur le terrain les repères PK (une borne par km + extrémités) avec l'écran *Voie → Configuration de la voie : relevé des repères PK* (ou à la main : PK, latitude, longitude, précision, photo)
   - [ ] Relever les points remarquables : gares, PN numérotés, ponts/viaducs, aiguillages, heurtoirs, zones sans réseau
@@ -34,3 +34,9 @@ Actions mises de côté le 23/11/2026, à reprendre quand ce sera possible.
 
 ## Décisions à faire valider par le président
 - [ ] Nom de l'appli (« CFV Atelier »), administrateurs, validation de la remise en service après une panne bloquante, son des notifications
+
+## Plan de la ligne (v1.10.0)
+- [x] Carte vectorielle hors ligne : tracé, PK, gares, PN, évitements, tiroirs, problèmes en cours (`js/carte-voie.js`, données générées par `outils/generer-carte-voie.py`)
+- [ ] Types de PN (manuel / automatique) : seuls 3 sur 17 sont renseignés dans OpenStreetMap, les autres sont « non renseignés »
+- [ ] Évitements et tiroirs : classement automatique d'après OpenStreetMap, à vérifier sur le terrain (gares des Herbiers, Saint-Laurent, Mortagne)
+- [ ] PN 47 manquant dans OpenStreetMap ; PN 56 hors du tracé retenu ; confirmer les PK avec le relevé de terrain

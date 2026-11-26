@@ -11,14 +11,15 @@ export async function afficher(ctx) {
   const releve = peutInspecter(moi) && !voieConfiguree(params);
   const active = peutInspecter(moi) ? tourneeEnCours(moi.id) : null;
   const el = ctx.rendre(`
-  <div class="entete"><h1>La voie</h1><div class="aide" style="font-size:14px">Mortagne-sur-Sèvre – Les Herbiers · PK ${LIGNE.pkDebut} à ${LIGNE.pkFin}</div></div>
+  <div class="entete"><h1>La voie</h1><div class="aide" style="font-size:14px">Les Herbiers – Mortagne-sur-Sèvre · PK ${LIGNE.pkDebut} à ${LIGNE.pkFin}</div></div>
   <div class="page" style="padding-top:8px">
     ${active ? `<a class="btn grand" href="#/tournee" style="background:var(--orange)">${icone('voie')}Reprendre la tournée en cours</a>`
       : peutInspecter(moi) ? `<a class="btn grand" href="#/tournee">${icone('voie')}Démarrer une tournée d'inspection</a>` : ''}
     ${peutSignaler(moi) ? `<a class="btn second" href="#/signaler?cible=voie">${icone('plus', 20)}Signaler un problème ponctuel</a>` : ''}
     ${releve ? `<a class="carte pad lien-carte" href="#/releve"><b>${icone('pin', 20)} Configuration de la voie : relevé des repères PK</b>
       <span class="aide">Réservé aux référents voie et aux administrateurs. À faire une fois, sur le terrain, pour le plan et le calcul automatique du PK.</span></a>` : ''}
-    <div class="bandeau">Le plan interactif de la ligne arrivera une fois les repères PK relevés. En attendant, les problèmes sont classés par point kilométrique.</div>
+    <a class="carte pad lien-carte" href="#/carte"><b>${icone('pin', 20)} Plan de la ligne</b>
+      <span class="aide">Tracé, PK, gares, passages à niveau, évitements, tiroirs et problèmes en cours, sur une carte à déplacer et à zoomer.</span></a>
     <div class="segments" role="group" aria-label="Affichage">
       <button type="button" data-r="0">À traiter</button><button type="button" data-r="1">Tout l'historique</button>
     </div>
