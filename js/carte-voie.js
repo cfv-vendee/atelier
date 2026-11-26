@@ -76,7 +76,9 @@ const el = (nom, attrs = {}, parent) => {
 const chemin = (pts) => 'M' + pts.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('L');
 
 export function monterCarte(conteneur, { pannes = [], corrections = [], peutModifier = false, onSauver = async () => {}, onSupprimer = async () => {}, onChoisir = () => {}, choisi = null, etat = null } = {}) {
-  const visibles = { fond: true, gares: true, pn: true, ouvrages: true, pk: true, annexes: true, pannes: true, ...(etat?.visibles || {}) };
+  // Filtres choisis : gardés sur cet appareil pour la prochaine ouverture du plan.
+  let gardes = {}; try { gardes = JSON.parse(localStorage.getItem('cfv-carte-couches') || '{}'); } catch {}
+  const visibles = { fond: true, gares: true, pn: true, ouvrages: true, pk: true, annexes: true, pannes: true, ...gardes, ...(etat?.visibles || {}) };
   const corr = new Map(corrections.filter((c) => c.cle).map((c) => [c.cle, c]));
   const ajouts = corrections.filter((c) => !c.cle);
   const retires = corrections.filter((c) => c.cle && c.masque);
@@ -288,6 +290,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   conteneur.querySelector('.cv-couches').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
     visibles[b.dataset.c] = !visibles[b.dataset.c]; b.setAttribute('aria-pressed', visibles[b.dataset.c]); rendre();
+    try { localStorage.setItem('cfv-carte-couches', JSON.stringify(visibles)); } catch {}
   });
 
   // ── Détail de l'élément choisi ──
