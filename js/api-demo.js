@@ -183,6 +183,12 @@ export function creerApi() {
       exiger(t.auteur_id === moi().id || moi().est_admin);
       Object.assign(t, champs); sauver();
     },
+    async supprimerTournee(id) {
+      exiger(moi().est_admin);
+      d.tournees = (d.tournees || []).filter((t) => t.id !== id);
+      d.pannes.forEach((p) => { if (p.tournee_id === id) p.tournee_id = null; });
+      sauver();
+    },
     async tournees({ limite = 20 } = {}) {
       return [...(d.tournees || [])].sort((a, b) => b.debut.localeCompare(a.debut)).slice(0, limite)
         .map((t) => ({ ...t, auteur: personne(t.auteur_id), pannes: [{ count: d.pannes.filter((p) => p.tournee_id === t.id).length }] }));

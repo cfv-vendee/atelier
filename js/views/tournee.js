@@ -324,9 +324,17 @@ async function compteRendu(ctx, id) {
     ${(t.notes || []).length ? `<h3 class="titre-section">Notes</h3><div class="carte pad" style="display:flex;flex-direction:column;gap:6px;font-size:15px">
       ${t.notes.map((n) => `<div>${n.pk != null ? `<b>PK ${esc(pkTexte(n.pk))}</b> · ` : ''}${esc(n.texte)}</div>`).join('')}</div>` : ''}
     <button class="btn neutre no-print" id="imprimer">Imprimer / enregistrer en PDF</button>
+    ${ctx.moi.est_admin ? '<button class="btn neutre no-print" id="supprimer" style="color:var(--rouge,#B3261E)">Supprimer cette tournée</button>' : ''}
   </div>`);
   if (!el) return;
   el.querySelector('#imprimer').onclick = () => window.print();
+  const sup = el.querySelector('#supprimer');
+  if (sup) sup.onclick = async () => {
+    if (!sup.dataset.confirme) { sup.dataset.confirme = '1'; sup.textContent = 'Appuyez encore pour supprimer (les défauts signalés restent)'; return; }
+    sup.disabled = true;
+    try { await ctx.api.supprimerTournee(id); toast('Tournée supprimée'); ctx.aller('voie'); }
+    catch (e) { sup.disabled = false; delete sup.dataset.confirme; sup.textContent = 'Supprimer cette tournée'; toast(e.message || 'Suppression impossible.'); }
+  };
 }
 
 // Liste des tournées (onglet Voie).

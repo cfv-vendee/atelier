@@ -219,6 +219,13 @@ export function creerApi({ url, cle }) {
       const { error } = await sb.from('tournees').insert({ ...donnees, id, auteur_id: uid });
       if (error && !dejaFait(error)) throw erreur(error.message, error.code);
     },
+    async supprimerTournee(id) {
+      exigerId(id, 'Tournée');
+      if (!navigator.onLine) throw erreur('Pas de connexion : la tournée ne peut être supprimée qu’avec le réseau.');
+      const l = verif(await sb.from('tournees').delete().eq('id', id).select('id'));
+      if (!l.length) throw erreur('Suppression refusée : réservée aux administrateurs.');
+      cache.vider();
+    },
     async terminerTournee(id, champs) { verif(await sb.from('tournees').update(champs).eq('id', id)); },
     async tournees({ limite = 20 } = {}) {
       return avecCache('tournees:' + limite, async () => verif(await sb.from('tournees')
