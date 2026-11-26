@@ -58,7 +58,7 @@ const mil = (c) => c[Math.floor(c.length / 2)];
 const cleDe = (prefixe, c) => { const p = mil(c); return `${prefixe}:${p[1].toFixed(4)},${p[0].toFixed(4)}`; };
 const COUL_ANNEXE = { evitement: '#175CD3', tiroir: '#7A3FB0' };
 const LIB_ANNEXE = { evitement: "Voie d'évitement", tiroir: 'Tiroir (voie en cul-de-sac)' };
-const COUCHES = [['gares', 'Gares'], ['pn', 'Passages à niveau'], ['ouvrages', 'Ouvrages'], ['pk', 'PK'], ['annexes', 'Évitements et tiroirs'], ['pannes', 'Problèmes']];
+const COUCHES = [['fond', 'Fond de carte'], ['gares', 'Gares'], ['pn', 'Passages à niveau'], ['ouvrages', 'Ouvrages'], ['pk', 'PK'], ['annexes', 'Évitements et tiroirs'], ['pannes', 'Problèmes']];
 
 const el = (nom, attrs = {}, parent) => {
   const n = document.createElementNS(NS, nom);
@@ -68,12 +68,12 @@ const el = (nom, attrs = {}, parent) => {
 const chemin = (pts) => 'M' + pts.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('L');
 
 export function monterCarte(conteneur, { pannes = [], corrections = [], peutModifier = false, onSauver = async () => {}, onSupprimer = async () => {}, onChoisir = () => {}, choisi = null, etat = null } = {}) {
-  const visibles = { gares: true, pn: true, ouvrages: true, pk: true, annexes: true, pannes: true, ...(etat?.visibles || {}) };
+  const visibles = { fond: true, gares: true, pn: true, ouvrages: true, pk: true, annexes: true, pannes: true, ...(etat?.visibles || {}) };
   const corr = new Map(corrections.filter((c) => c.cle).map((c) => [c.cle, c]));
   const ajouts = corrections.filter((c) => !c.cle);
   const retires = corrections.filter((c) => c.cle && c.masque);
   conteneur.innerHTML = `
-    <div class="cv-zone"><svg class="cv-svg" role="img" aria-label="Plan de la ligne"></svg>
+    <div class="cv-zone"><svg class="cv-svg" role="img" aria-label="Plan de la ligne"></svg><span class="cv-attrib" aria-hidden="true">© IGN</span>
       <div class="cv-zoom"><button type="button" data-z="+" aria-label="Zoom avant">+</button><button type="button" data-z="-" aria-label="Zoom arrière">−</button>
         <button type="button" data-z="0" aria-label="Voir toute la ligne">⤢</button></div>
       <div class="cv-detail" hidden></div></div>
@@ -86,7 +86,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
       <span><i class="cv-l-li" style="background:#7A3FB0"></i>Tiroir</span><span><i class="cv-l-li" style="background:#7A5C2E"></i>Viaduc, pont</span></div>
     <p class="aide cv-source">Tracé, gares et passages à niveau : © contributeurs OpenStreetMap. PK : SNCF Réseau, via Carto Tchoo. Données à confirmer avec le relevé de terrain.</p>`;
   const svg = conteneur.querySelector('.cv-svg'), detail = conteneur.querySelector('.cv-detail');
-  const g = el('g', {}, svg), gLignes = el('g', {}, g);
+  const g = el('g', {}, svg), gFond = el('g', {}, g), gLignes = el('g', {}, g);
   const gMarq = el('g', {}, svg);
   let k = 0.05, tx = 0, ty = 0, kMin = 0.01, ajuste = false, selection = choisi;
   const taille = () => svg.getBoundingClientRect();
@@ -103,6 +103,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   const gAnn = el('g', {}, gLignes);
   annexes.forEach((x) => el('path', { d: chemin(x.m), fill: 'none', stroke: COUL_ANNEXE[x.genre], 'stroke-width': 3.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, gAnn));
   ouvrages.filter((o) => o.genre !== 'tunnel').forEach((o) => el('path', { d: chemin(o.m), fill: 'none', stroke: COUL_OUVRAGE, 'stroke-width': 11, 'stroke-linecap': 'butt', 'vector-effect': 'non-scaling-stroke', opacity: .55 }, gLignes));
+  el('path', { d: chemin(LIGNE), fill: 'none', stroke: '#fff', 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke', opacity: .9 }, gLignes);
   el('path', { d: chemin(LIGNE), fill: 'none', stroke: '#2F3540', 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, gLignes);
   el('path', { d: chemin(LIGNE), fill: 'none', stroke: '#FFFFFF', 'stroke-width': 1.6, 'stroke-dasharray': '6 6', 'vector-effect': 'non-scaling-stroke' }, gLignes);
   ouvrages.filter((o) => o.genre === 'tunnel').forEach((o) => el('path', { d: chemin(o.m), fill: 'none', stroke: '#2F3540', 'stroke-width': 9, 'stroke-dasharray': '3 3', 'vector-effect': 'non-scaling-stroke' }, gLignes));
@@ -165,8 +166,48 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   });
 
   // ── Rendu ──
+
+  // ── Fond de carte : plan IGN (tuiles), posées en mètres comme le reste du tracé ──
+  const URL_TUILE = (z, x, y) => `https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png&TILEMATRIXSET=PM&TILEMATRIX=${z}&TILEROW=${y}&TILECOL=${x}`;
+  const tuiles = new Map(), echecs = new Set();      // clé z/x/y → <image> ; tuiles introuvables (hors connexion…)
+  const lngDe = (x, z) => (x / 2 ** z) * 360 - 180;
+  const latDe = (y, z) => (Math.atan(Math.sinh(Math.PI * (1 - (2 * y) / 2 ** z))) * 180) / Math.PI;
+  const attrib = conteneur.querySelector('.cv-attrib');
+  function majFond() {
+    const actif = visibles.fond;
+    gFond.style.display = actif ? '' : 'none'; attrib.style.display = actif ? '' : 'none';
+    if (!actif) return;
+    const r = taille(); if (!r.width) return;
+    const z = Math.max(10, Math.min(18, Math.ceil(Math.log2(106760 * k))));
+    const x0 = -tx / k, x1 = (r.width - tx) / k, y0 = -ty / k, y1 = (r.height - ty) / k;      // fenêtre visible, en mètres
+    const lng0 = x0 / KX - 1, lng1 = x1 / KX - 1, lat0 = LAT0 - y0 / KY, lat1 = LAT0 - y1 / KY;
+    const n = 2 ** z, tx0 = Math.floor(((lng0 + 180) / 360) * n), tx1 = Math.floor(((lng1 + 180) / 360) * n);
+    const merc = (lat) => (1 - Math.log(Math.tan((lat * Math.PI) / 180) + 1 / Math.cos((lat * Math.PI) / 180)) / Math.PI) / 2 * n;
+    const ty0 = Math.floor(merc(lat0)), ty1 = Math.floor(merc(lat1));
+    if ((tx1 - tx0 + 1) * (ty1 - ty0 + 1) > 40) return;
+    const voulues = new Set();
+    for (let X = tx0; X <= tx1; X++) for (let Y = ty0; Y <= ty1; Y++) {
+      const cle = `${z}/${X}/${Y}`; voulues.add(cle);
+      if (tuiles.has(cle) || echecs.has(cle)) continue;
+      const [ax, ay] = monde(lngDe(X, z), latDe(Y, z)), [bx, by] = monde(lngDe(X + 1, z), latDe(Y + 1, z));
+      const im = el('image', { x: ax, y: ay, width: bx - ax + 0.6, height: by - ay + 0.6, preserveAspectRatio: 'none', opacity: 0, href: URL_TUILE(z, X, Y), 'data-z': z }, gFond);
+      im.addEventListener('load', () => { im.dataset.ok = '1'; im.setAttribute('opacity', 1); nettoyer(); });
+      im.addEventListener('error', () => { echecs.add(cle); tuiles.delete(cle); im.remove(); });
+      tuiles.set(cle, im);
+    }
+    // les tuiles d'un autre niveau de zoom restent sous les nouvelles jusqu'à leur arrivée ; celles hors écran partent
+    tuiles.forEach((im, cle) => { if (cle.startsWith(z + '/') && !voulues.has(cle)) { im.remove(); tuiles.delete(cle); } });
+    nettoyer.z = z; nettoyer.voulues = voulues; nettoyer();
+  }
+  function nettoyer() {
+    const { z, voulues } = nettoyer; if (z == null) return;
+    if (![...voulues].every((c) => !tuiles.has(c) || tuiles.get(c).dataset.ok)) return;
+    tuiles.forEach((im, cle) => { if (!cle.startsWith(z + '/')) { im.remove(); tuiles.delete(cle); } });
+  }
+
   function rendre() {
     g.setAttribute('transform', `translate(${tx} ${ty}) scale(${k})`);
+    majFond();
     const larg = taille().width, pxKm = k * 1000, pas = pxKm < 22 ? 5 : pxKm < 55 ? 2 : 1;
     for (const m of marq) {
       m.noeud.setAttribute('transform', `translate(${(m.x * k + tx).toFixed(1)} ${(m.y * k + ty).toFixed(1)})`);
