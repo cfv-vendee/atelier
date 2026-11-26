@@ -46,12 +46,11 @@ function pointAuPk(pk) {
 }
 
 const TYPES_PN = {
-  auto: { label: 'Automatique', detail: 'feux et cloche', couleur: '#175CD3' },
-  manuel: { label: 'Manuel', detail: 'gardé ou manœuvré à la main', couleur: '#C26A00' },
-  barrieres: { label: 'À barrières (à confirmer)', detail: 'barrières relevées sur OpenStreetMap, manuel ou automatique à confirmer', couleur: '#C26A00' },
-  inconnu: { label: 'Type non renseigné', detail: 'à préciser sur le terrain', couleur: '#8A919C' },
+  auto: { label: 'Automatique', detail: 'équipé de feux et de barrières automatiques', couleur: '#175CD3' },
+  agricole: { label: 'Agricole', detail: 'passage à niveau agricole', couleur: '#3B7D3A' },
+  inconnu: { label: 'Type non renseigné', detail: 'à renseigner par un référent voie (Modifier)', couleur: '#8A919C' },
 };
-const typePn = (p) => TYPES_PN[p.type] || TYPES_PN.inconnu;
+const typePn = (p) => TYPES_PN[p.type] || TYPES_PN.inconnu;      // « barrieres » d'OpenStreetMap n'est pas un type : traité comme non renseigné
 const LIB_OUVRAGE = { viaduc: 'Viaduc', pont: 'Pont', tunnel: 'Tunnel' };
 const COUL_OUVRAGE = '#7A5C2E';
 const mil = (c) => c[Math.floor(c.length / 2)];
@@ -81,7 +80,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
     ${peutModifier ? `<div class="cv-edition"><button type="button" class="btn neutre" data-ajout>${'+'} Ajouter un ouvrage ou un PN</button>
       ${retires.length ? `<button type="button" class="btn neutre" data-retablir>Rétablir ${retires.length} élément${retires.length > 1 ? 's' : ''} retiré${retires.length > 1 ? 's' : ''}</button>` : ''}</div>` : ''}
     <div class="cv-legende" aria-label="Légende">
-      <span><i class="cv-l-pn" style="background:#175CD3"></i>PN automatique</span><span><i class="cv-l-pn" style="background:#C26A00"></i>PN à barrières</span>
+      <span><i class="cv-l-pn" style="background:#175CD3"></i>PN automatique</span><span><i class="cv-l-pn" style="background:#3B7D3A"></i>PN agricole</span>
       <span><i class="cv-l-pn" style="background:#8A919C"></i>PN type non renseigné</span><span><i class="cv-l-li" style="background:#175CD3"></i>Évitement</span>
       <span><i class="cv-l-li" style="background:#7A3FB0"></i>Tiroir</span><span><i class="cv-l-li" style="background:#7A5C2E"></i>Viaduc, pont</span></div>
     <p class="aide cv-source">Tracé, gares et passages à niveau : © contributeurs OpenStreetMap. PK : SNCF Réseau, via Carto Tchoo. Données à confirmer avec le relevé de terrain.</p>`;
@@ -319,7 +318,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   function modifier(m) {
     const d = m.data, titre = m.genre === 'pn' ? d.nom : m.genre === 'annexe' ? LIB_ANNEXE[d.genre] : (d.nom || LIB_OUVRAGE[d.genre]);
     let corps = '';
-    if (m.genre === 'pn') corps = `<p class="aide">Type du passage à niveau</p>${choix('type', [['manuel', 'Manuel'], ['auto', 'Automatique'], ['', 'Selon OSM']], d.corr?.pn_type || '')}`;
+    if (m.genre === 'pn') corps = `<p class="aide">Type du passage à niveau</p>${choix('type', [['auto', 'Automatique'], ['agricole', 'Agricole']], ['auto', 'agricole'].includes(d.type) ? d.type : '')}`;
     if (m.genre === 'annexe') corps = `<p class="aide">Classement de cette voie</p>${choix('genre', [['evitement', 'Évitement'], ['tiroir', 'Tiroir']], d.genre)}`;
     if (m.genre === 'ouvrage') corps = `<label class="champ"><span class="etiquette">Nom (facultatif)</span><input class="saisie" id="nom" maxlength="120" value="${esc(d.nom || '')}"></label>
       <p class="aide">Type d’ouvrage</p>${choix('genre', [['viaduc', 'Viaduc'], ['pont', 'Pont'], ['tunnel', 'Tunnel']], d.genre)}`;
@@ -331,7 +330,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
     f.querySelector('[data-ok]').onclick = () => enregistrer(async () => {
       const base = d.cle ? { id: d.corr?.id, cle: d.cle } : { id: d.corr.id };
       const champs = {};
-      if (m.genre === 'pn') champs.pn_type = lireChoix(f, 'type') || null;
+      if (m.genre === 'pn') { champs.pn_type = lireChoix(f, 'type'); if (!champs.pn_type) throw new Error('Choisissez Automatique ou Agricole.'); }
       if (m.genre === 'annexe') champs.genre = lireChoix(f, 'genre');
       if (m.genre === 'ouvrage') { champs.genre = lireChoix(f, 'genre'); champs.nom = f.querySelector('#nom').value.trim() || null; }
       await onSauver({ ...base, ...champs, masque: false });
@@ -346,7 +345,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
       ${choix('genre', [['viaduc', 'Viaduc'], ['pont', 'Pont'], ['tunnel', 'Tunnel'], ['pn', 'Passage à niveau']], 'viaduc').replace('class="segments "', 'class="segments cv-quatre"')}
       <label class="champ"><span class="etiquette">Nom</span><input class="saisie" id="nom" maxlength="120" placeholder="ex. Viaduc de Barbin"></label>
       <label class="champ"><span class="etiquette">PK</span><input class="saisie" id="pk" inputmode="decimal" placeholder="ex. 64,2"></label>
-      <div id="bloc-pn" hidden><p class="aide">Type du passage à niveau</p>${choix('type', [['manuel', 'Manuel'], ['auto', 'Automatique'], ['', 'À préciser']], '')}</div>
+      <div id="bloc-pn" hidden><p class="aide">Type du passage à niveau</p>${choix('type', [['auto', 'Automatique'], ['agricole', 'Agricole']], '')}</div>
       <p class="erreur" id="err" role="alert"></p><button type="button" class="btn grand" data-ok>Ajouter</button>`, { focusChamp: false });
     brancherChoix(f);
     f.querySelector('[data-groupe="genre"]').addEventListener('click', () => { f.querySelector('#bloc-pn').hidden = lireChoix(f, 'genre') !== 'pn'; });
