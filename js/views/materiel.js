@@ -1,7 +1,7 @@
 import { esc, icone, pastille, ETATS, CATEGORIES, GRAVITES, STATUTS, nomEngin, quand } from '../ui.js';
 import { formulaireEngin } from './engin.js';
 
-const FILTRES = [['tout', 'Tout'], ['vapeur', 'Vapeur'], ['diesel', 'Diesel'], ['loco', 'Locotracteurs'], ['autorail', 'Autorails'], ['voiture', 'Voitures']];
+const FILTRES = [['tout', 'Tout'], ['vapeur', 'Vapeur'], ['diesel', 'Diesel'], ['loco', 'Locotracteurs'], ['autorail', 'Autorails'], ['draisine', 'Draisines'], ['voiture', 'Voitures']];
 const GRADES = [['tout', 'Toutes'], ['bloquante', 'Bloquantes'], ['surveiller', 'À surveiller'], ['mineure', 'Mineures']];
 const COULEUR_ETAT = { immobilise: 'red', surveiller: 'orange', service: 'green' };
 let filtreMemo = 'tout';

@@ -34,7 +34,7 @@ export const CATEGORIES = {
   locotracteur: { label: 'Locotracteur', code: 'LOC', groupe: 'loco' },
   manoeuvre: { label: 'Manœuvre', code: 'MAN', groupe: 'loco' },
   autorail: { label: 'Autorail', code: 'AR', groupe: 'autorail' },
-  draisine: { label: 'Draisine', code: 'DR', groupe: 'autorail' },
+  draisine: { label: 'Draisine', code: 'DR', groupe: 'draisine' },
   voiture: { label: 'Voiture', code: 'VOI', groupe: 'voiture' },
 };
 export const EVENEMENTS = {
@@ -44,6 +44,7 @@ export const EVENEMENTS = {
   intervention: { label: 'Intervention', couleur: '#C26A00' },
   reparee: { label: 'Réparée', couleur: '#146C43' },
   reouverte: { label: 'Rouverte', couleur: '#B42318' },
+  gravite: { label: 'Gravité modifiée', couleur: '#5B6472' },
 };
 
 export const peutSignaler = (me) => !!me?.actif && (me.role !== 'bureau' || me.est_admin);
@@ -55,6 +56,29 @@ export function droitsPanne(me, p) {
   if (p.cible === 'voie') return peutInspecter(me) ? 'tout' : null;
   return peutReparer(me) ? 'tout' : peutSignaler(me) ? 'commenter' : null;
 }
+
+// Gravité : techniciens et administrateurs sur tout, référents voie sur la voie ; jamais les conducteurs seuls ni le bureau.
+export const peutChangerGravite = (me, p) => !!me?.actif && p.statut !== 'reparee'
+  && (peutReparer(me) || (p.cible === 'voie' && peutInspecter(me)));
+
+// Le technicien « intervenu » sur une panne : il l'a prise en charge ou y a ajouté une intervention
+// (depuis la dernière réouverture, s'il y en a eu une).
+export function aIntervenu(me, p) {
+  if (!me) return false;
+  const evts = [...(p.evenements || [])].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)));
+  let debut = 0;
+  evts.forEach((e, i) => { if (e.type === 'reouverte') debut = i + 1; });
+  return p.pris_par === me.id
+    || evts.slice(debut).some((e) => e.auteur_id === me.id && (e.type === 'prise_en_charge' || e.type === 'intervention'));
+}
+
+// Marquer réparée (= remettre la machine en service). Sur une panne BLOQUANTE de matériel : seulement le
+// technicien intervenu, ou un administrateur. Même règle que la base de données (peut_agir_panne).
+export const peutMarquerReparee = (me, p) => {
+  if (droitsPanne(me, p) !== 'tout') return false;
+  if (p.cible === 'voie' || p.gravite !== 'bloquante' || me.est_admin) return true;
+  return aIntervenu(me, p);
+};
 
 export const numPanne = (p) => `${p.annee}-${String(p.numero).padStart(3, '0')}`;
 export const nomEngin = (e) => (e ? `${e.designation}${e.surnom ? ` « ${e.surnom} »` : ''}` : '');

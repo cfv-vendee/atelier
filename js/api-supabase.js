@@ -200,6 +200,12 @@ export function creerApi({ url, cle }) {
       if (fichiers.length) await envoyerPhotos(panneId, null, fichiers, uid, photosIds);
       return panneId;
     },
+    async changerGravite(panneId, gravite, motif) {
+      exigerId(panneId, 'Panne');
+      if (!navigator.onLine) throw erreur('Pas de connexion : la gravité ne peut être modifiée qu’avec le réseau.');
+      verif(await sb.rpc('changer_gravite', { p_panne: panneId, p_gravite: gravite, p_motif: motif || null }));
+      cache.vider();
+    },
     async ajouterEvenement(panneId, type, texte, fichiers = [], { id, created_at, photosIds } = {}) {
       const uid = await monId();
       const evId = id || crypto.randomUUID();

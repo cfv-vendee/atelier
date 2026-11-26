@@ -2,7 +2,7 @@ import { esc, icone, CATEGORIES, nomEngin, peutReparer } from '../ui.js';
 import { qrSvg } from '../qr.js';
 import { lienEngin } from '../scanner.js';
 
-const FILTRES = [['tout', 'Tout'], ['vapeur', 'Vapeur'], ['diesel', 'Diesel'], ['loco', 'Locotracteurs'], ['autorail', 'Autorails'], ['voiture', 'Voitures']];
+const FILTRES = [['tout', 'Tout'], ['vapeur', 'Vapeur'], ['diesel', 'Diesel'], ['loco', 'Locotracteurs'], ['autorail', 'Autorails'], ['draisine', 'Draisines'], ['voiture', 'Voitures']];
 
 export const etiquette = (e) => `
   <div class="etq-carte">

@@ -1,5 +1,5 @@
 import { esc, icone, pastille, GRAVITES, STATUTS, EVENEMENTS, ELEMENTS, quand, numPanne, nomEngin, nomPersonne, roleTexte, formatPk,
-  droitsPanne, feuille, toast, champPhotos, brancherPhotos } from '../ui.js';
+  droitsPanne, peutChangerGravite, peutMarquerReparee, feuille, toast, champPhotos, brancherPhotos } from '../ui.js';
 
 const ACTIONS = {
   commentaire: { titre: 'Ajouter un commentaire', bouton: 'Ajouter', aide: 'Précisez, signalez une aggravation, ajoutez une photo…', requis: false },
@@ -28,8 +28,11 @@ export async function afficher(ctx) {
     actions = p.statut === 'reparee'
       ? `<button class="btn neutre plein" data-action="reouverte">Rouvrir ${p.cible === 'voie' ? 'le problème' : 'la panne'}</button>`
       : `${p.statut === 'ouverte' ? '<button class="btn second plein" data-action="prise_en_charge">Prendre en charge</button>' : ''}
-         <div class="btns"><button class="btn second" data-action="intervention">Ajouter une intervention</button>
-         <button class="btn" data-action="reparee">Marquer réparée</button></div>`;
+         ${peutMarquerReparee(moi, p)
+    ? `<div class="btns"><button class="btn second" data-action="intervention">Ajouter une intervention</button>
+         <button class="btn" data-action="reparee">Marquer réparée</button></div>`
+    : `<button class="btn second plein" data-action="intervention">Ajouter une intervention</button>
+         <p class="aide" style="text-align:center;margin:0">Cette panne est bloquante : seul le technicien qui intervient dessus, ou un administrateur, peut la marquer réparée et remettre la machine en service. Prenez-la en charge ou ajoutez une intervention pour pouvoir le faire.</p>`}`;
     actions += `<button class="lien" data-action="commentaire" style="align-self:center">Ajouter un commentaire ou une photo</button>`;
   } else if (droits === 'commenter') {
     actions = `<button class="btn neutre plein" data-action="commentaire">Ajouter un commentaire ou une photo</button>
@@ -45,7 +48,8 @@ export async function afficher(ctx) {
     <span class="sous">Panne n° ${esc(numPanne(p))}</span></div>
   <div class="page">
     <div style="display:flex;flex-direction:column;gap:10px">
-      <div style="display:flex;gap:8px;flex-wrap:wrap">${pastille(g)}${pastille(STATUTS[p.statut])}</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">${pastille(g)}${pastille(STATUTS[p.statut])}
+        ${peutChangerGravite(moi, p) ? '<button class="lien" id="gravite" style="min-height:44px;padding:0 4px">Modifier la gravité</button>' : ''}</div>
       <h1 style="margin:0;font-size:24px;font-weight:800;line-height:1.2">${esc(p.titre)}</h1>
       <div class="aide" style="font-size:15px">${sujet}</div>
       ${p.tournee_id ? `<a href="#/tournee/${esc(p.tournee_id)}" style="font-size:14px;font-weight:600">Constaté pendant une tournée d'inspection →</a>` : ''}
@@ -57,7 +61,7 @@ export async function afficher(ctx) {
       ${p.evenements.map((ev) => `<div class="etape"><div class="rail"><i style="background:${EVENEMENTS[ev.type].couleur}"></i><span></span></div>
         <div class="corps"><b>${EVENEMENTS[ev.type].label}</b>
         <small>${esc(nomPersonne(ev.auteur))}${ev.auteur ? ' · ' + esc(roleTexte(ev.auteur)) : ''} · ${esc(quand(ev.created_at))}</small>
-        ${ev.texte && ev.type !== 'declaration' ? `<p>${esc(ev.texte)}</p>` : ''}${grille(photosDe(ev.id))}</div></div>`).join('')}
+        ${ev.texte && ev.type !== 'declaration' ? `<p style="white-space:pre-line">${esc(ev.texte)}</p>` : ''}${grille(photosDe(ev.id))}</div></div>`).join('')}
     </div>
   </div>
   <div class="pied">${actions}${moi.est_admin ? '<button class="lien" id="supprimer" style="align-self:center;color:var(--rouge)">Supprimer cette panne</button>' : ''}</div>`);
@@ -75,6 +79,7 @@ export async function afficher(ctx) {
       .catch((x) => { toast(x.message); b.disabled = false; });
   });
 
+  el.querySelector('#gravite')?.addEventListener('click', () => ouvrirGravite(ctx, p));
   el.querySelectorAll('[data-action]').forEach((b) => (b.onclick = () => ouvrirAction(ctx, p, b.dataset.action)));
 }
 
@@ -97,6 +102,36 @@ function ouvrirAction(ctx, p, type) {
       const resultat = await ctx.envois.envoyerOuGarder({ type: 'evenement', panneId: p.id, evId: crypto.randomUUID(), typeEv: type, texte, fichiers: photos(), resume: `${a.titre} · ${p.titre}` });
       fermer();
       toast(resultat === 'envoye' ? 'Enregistré' : 'Pas de réseau : gardé dans le téléphone, envoi automatique au retour du réseau.');
+      ctx.aller('panne/' + p.id);
+    } catch (x) { el.querySelector('#err').textContent = x.message; e.target.disabled = false; }
+  };
+}
+
+// Corriger la gravité d'une panne (ex. une panne signalée « bloquante » qui n'est qu'« à surveiller »).
+function ouvrirGravite(ctx, p) {
+  let choix = null;
+  const { el, fermer } = feuille('Modifier la gravité', `
+    <p class="aide" style="margin:0">Actuellement : <b>${esc(GRAVITES[p.gravite].label)}</b>. Le changement est enregistré dans l'historique avec votre nom.</p>
+    ${Object.entries(GRAVITES).filter(([k]) => k !== p.gravite).map(([k, g]) => `<button type="button" class="choix gravite" data-gravite="${k}">
+      <span class="point" style="width:14px;height:14px;border-radius:7px;background:${g.couleur}"></span>
+      <span class="g"><b>${g.label}</b><small>${g.aide}</small></span></button>`).join('')}
+    <div class="champ"><label for="motif">Pourquoi ? <span class="aide">(facultatif)</span></label>
+      <textarea class="saisie" id="motif" placeholder="Ex. vérifié sur place, on peut rouler"></textarea></div>
+    <p class="erreur" id="err" role="alert"></p>
+    <div class="btns"><button class="btn neutre" id="annuler">Annuler</button><button class="btn" id="ok" disabled>Enregistrer</button></div>`, { focusChamp: false });
+  el.querySelector('#annuler').onclick = fermer;
+  el.querySelectorAll('[data-gravite]').forEach((b) => (b.onclick = () => {
+    choix = b.dataset.gravite;
+    el.querySelectorAll('[data-gravite]').forEach((x) => x.setAttribute('aria-pressed', x === b));
+    el.querySelector('#ok').disabled = false;
+  }));
+  el.querySelector('#ok').onclick = async (e) => {
+    if (!choix) return;
+    e.target.disabled = true;
+    try {
+      await ctx.api.changerGravite(p.id, choix, el.querySelector('#motif').value);
+      fermer();
+      toast('Gravité modifiée');
       ctx.aller('panne/' + p.id);
     } catch (x) { el.querySelector('#err').textContent = x.message; e.target.disabled = false; }
   };

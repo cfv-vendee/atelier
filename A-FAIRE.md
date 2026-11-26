@@ -21,7 +21,7 @@ Actions mises de côté le 23/11/2026, à reprendre quand ce sera possible.
   - [ ] Relever les points remarquables : gares, PN numérotés, ponts/viaducs, aiguillages, heurtoirs, zones sans réseau
   - [ ] Prévenir Claude quand le relevé est fini (il lit les repères directement dans la base), puis contrôle sur le terrain (écart < 20 m)
   - [ ] Quand tout est bon : « Terminer la configuration de la voie » (l'écran de relevé disparaît)
-- [ ] Numéros réels des 7 boîtes à tonnerre et du fourgon B3Dt (modifiables dans l'appli : fiche engin → « Modifier la fiche »)
+- [ ] Numéros réels des 7 voitures ÖBB / DRG et du fourgon B3Dt (modifiables dans l'appli : fiche engin → « Modifier la fiche »)
 - [ ] Vérifier la fiche du Y 7303 (deux descriptions différentes)
 - [ ] Une photo de chaque engin
 - [ ] Logo du CFV en haute définition (icône d'appli nette)

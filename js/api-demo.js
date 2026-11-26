@@ -1,7 +1,7 @@
 // Mode démonstration : mêmes fonctions que l'accès réel, données gardées dans ce navigateur.
 // Sert aux essais et à la présentation, tant que la base n'est pas branchée.
 import { PARC } from '../data/parc.js';
-import { photoCarree } from './ui.js';
+import { photoCarree, peutChangerGravite, peutMarquerReparee } from './ui.js';
 
 const CLE = 'cfv-atelier-demo-v2';
 const MEMBRES = [
@@ -147,11 +147,23 @@ export function creerApi() {
       sauver();
       return id;
     },
+    async changerGravite(panneId, gravite, motif) {
+      const cible = d.pannes.find((p) => p.id === panneId);
+      if (!cible) throw new Error('Panne introuvable.');
+      exiger(peutChangerGravite(moi(), cible));
+      if (cible.gravite === gravite) return;
+      const nom = { bloquante: 'Bloquante', surveiller: 'À surveiller', mineure: 'Mineure' };
+      const trace = `${nom[cible.gravite]} → ${nom[gravite]}${motif && motif.trim() ? '\n' + motif.trim() : ''}`;
+      cible.gravite = gravite;
+      ajouterEvt(d, panneId, moi().id, 'gravite', trace);
+      sauver();
+    },
     async ajouterEvenement(panneId, type, texte, fichiers = [], options = {}) {
       if (options.id && d.evenements.some((e) => e.id === options.id)) return;   // déjà envoyé
       const cible = d.pannes.find((p) => p.id === panneId);
       if (!cible) throw new Error('Panne introuvable.');
-      exiger(cible.cible === 'voie' ? peutInspecter(moi()) : type === 'commentaire' ? peutSignaler(moi()) : peutReparer(moi()));
+      exiger(cible.cible === 'voie' ? peutInspecter(moi()) : type === 'commentaire' ? peutSignaler(moi())
+        : type === 'reparee' ? peutMarquerReparee(moi(), { ...cible, evenements: d.evenements.filter((e) => e.panne_id === panneId) }) : peutReparer(moi()));
       const ev = ajouterEvt(d, panneId, moi().id, type, texte, options.created_at);
       if (options.id) ev.id = options.id;
       for (const f of fichiers) d.photos.push({ id: uid(), panne_id: panneId, evenement_id: ev.id, donnees: await lireFichier(f) });
