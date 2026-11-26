@@ -13,6 +13,7 @@ export async function afficher(ctx) {
   const zone = el.querySelector('#plan');
   let plan, corrections = elements;
   const monter = (etat) => {
+    plan?.destroy();
     plan = monterCarte(zone, { pannes, corrections, peutModifier: peutInspecter(moi), etat, choisi: etat?.selection || null,
       onSauver: async (e) => { await api.sauverVoieElement(e); await rafraichir(); },
       onSupprimer: async (id) => { await api.supprimerVoieElement(id); await rafraichir(); } });

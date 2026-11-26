@@ -86,7 +86,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
       <span><i class="cv-l-li" style="background:#7A3FB0"></i>Tiroir</span><span><i class="cv-l-li" style="background:#7A5C2E"></i>Viaduc, pont</span></div>
     <p class="aide cv-source">Tracé, gares et passages à niveau : © contributeurs OpenStreetMap. PK : SNCF Réseau, via Carto Tchoo. Données à confirmer avec le relevé de terrain.</p>`;
   const svg = conteneur.querySelector('.cv-svg'), detail = conteneur.querySelector('.cv-detail');
-  const g = el('g', {}, svg), gFond = el('g', {}, g), gLignes = el('g', {}, g);
+  const g = el('g', {}, svg), gFond = el('g', { 'pointer-events': 'none' }, g), gLignes = el('g', {}, g);
   const gMarq = el('g', {}, svg);
   let k = 0.05, tx = 0, ty = 0, kMin = 0.01, ajuste = false, selection = choisi;
   const taille = () => svg.getBoundingClientRect();
@@ -243,6 +243,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   const doigts = new Map(); let deplace = false, depart = null, ecartPince = 0;
   svg.style.touchAction = 'none';
   svg.addEventListener('pointerdown', (e) => {
+    if (e.isPrimary) doigts.clear();        // premier doigt posé : on oublie tout doigt « fantôme » dont la fin du geste aurait été perdue
     doigts.set(e.pointerId, [e.clientX, e.clientY]); deplace = false; depart = [e.clientX, e.clientY];
     if (doigts.size === 2) { const [a, b] = [...doigts.values()]; ecartPince = Math.hypot(a[0] - b[0], a[1] - b[1]); deplace = true; }
   });
@@ -267,6 +268,8 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
     }
   };
   svg.addEventListener('pointerup', fin); svg.addEventListener('pointercancel', fin);
+  const finHors = (e) => { if (doigts.has(e.pointerId)) { doigts.delete(e.pointerId); } };      // fin de geste survenue hors du plan
+  window.addEventListener('pointerup', finHors); window.addEventListener('pointercancel', finHors);
   svg.addEventListener('wheel', (e) => { e.preventDefault(); const r = taille(); zoomer(Math.exp(-e.deltaY * 0.0015), e.clientX - r.left, e.clientY - r.top); }, { passive: false });
   conteneur.querySelector('.cv-zoom').addEventListener('click', (e) => {
     const b = e.target.closest('button'); if (!b) return;
@@ -363,7 +366,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
     else rendre();
   }).observe(svg);
   rendre();
-  return { ajuster, choisir, centrerSur, pointAuPk, etat: () => ({ k, tx, ty, kMin, visibles: { ...visibles }, selection }), destroy() {} };
+  return { ajuster, choisir, centrerSur, pointAuPk, etat: () => ({ k, tx, ty, kMin, visibles: { ...visibles }, selection }), destroy() { window.removeEventListener('pointerup', finHors); window.removeEventListener('pointercancel', finHors); } };
 }
 
 export { VOIE, pointAuPk };
