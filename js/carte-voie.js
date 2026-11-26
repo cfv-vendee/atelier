@@ -45,6 +45,15 @@ function pointAuPk(pk) {
   return pk < r[0][0] ? pointA(0) : pointA(Infinity);
 }
 
+// Inverse : point (en mètres) → PK, par interpolation entre les jalons ; renvoie aussi l'écart à la ligne (m).
+function pkAuPoint(q) {
+  const ab = abscisse(q), r = REPERES;
+  let pk = ab <= r[0][1] ? r[0][0] : r[r.length - 1][0];
+  for (let i = 0; i < r.length - 1; i++) if (ab >= r[i][1] && ab <= r[i + 1][1] && r[i + 1][1] > r[i][1]) { pk = r[i][0] + (r[i + 1][0] - r[i][0]) * (ab - r[i][1]) / (r[i + 1][1] - r[i][1]); break; }
+  const [px, py] = pointA(ab);
+  return { pk, ecart: Math.hypot(q[0] - px, q[1] - py) };
+}
+
 const TYPES_PN = {
   auto: { label: 'Automatique', detail: 'équipé de feux et de barrières automatiques', couleur: '#175CD3' },
   agricole: { label: 'Agricole', detail: 'passage à niveau agricole', couleur: '#3B7D3A' },
@@ -73,6 +82,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   const retires = corrections.filter((c) => c.cle && c.masque);
   conteneur.innerHTML = `
     <div class="cv-zone"><svg class="cv-svg" role="img" aria-label="Plan de la ligne"></svg><span class="cv-attrib" aria-hidden="true">© IGN</span>
+      <div class="cv-placement" hidden><span>Touchez la carte à l’emplacement voulu</span><button type="button" class="btn neutre" data-annuler-placement>Annuler</button></div>
       <div class="cv-zoom"><button type="button" data-z="+" aria-label="Zoom avant">+</button><button type="button" data-z="-" aria-label="Zoom arrière">−</button>
         <button type="button" data-z="0" aria-label="Voir toute la ligne">⤢</button></div>
       <div class="cv-detail" hidden></div></div>
@@ -261,6 +271,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   });
   const fin = (e) => {
     const etait = doigts.size; doigts.delete(e.pointerId);
+    if (e.type === 'pointerup' && etait === 1 && !deplace && placement) { toucherPlacement(e.clientX, e.clientY); return; }
     if (e.type === 'pointerup' && etait === 1 && !deplace) {
       const cible = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('[data-id]');
       choisir(cible && cible.style.display !== 'none' ? cible.dataset.id : null);
@@ -339,16 +350,35 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
       if (ajoute) await onSupprimer(d.corr.id); else await onSauver({ id: d.corr?.id, cle: d.cle, masque: true });
     }, fermer);
   }
-  function ajouterElement() {
+  // Placement à la main : on touche la carte, le PK est calculé d'après la position sur la ligne.
+  let placement = null;      // brouillon de l'ajout en cours
+  const bandeauPlacement = conteneur.querySelector('.cv-placement');
+  function demarrerPlacement(brouillon) { placement = brouillon; bandeauPlacement.hidden = false; detail.hidden = true; }
+  function finirPlacement(pk) {
+    const brouillon = placement; placement = null; bandeauPlacement.hidden = true;
+    ajouterElement(pk != null ? { ...brouillon, pk: String(Math.round(pk * 100) / 100).replace('.', ',') } : brouillon);
+  }
+  bandeauPlacement.querySelector('[data-annuler-placement]').addEventListener('click', () => finirPlacement(null));
+  function toucherPlacement(clientX, clientY) {
+    const r = taille(), q = [(clientX - r.left - tx) / k, (clientY - r.top - ty) / k], { pk, ecart } = pkAuPoint(q);
+    if (ecart > 250) { toast('Trop loin de la ligne : touchez plus près du tracé.'); return; }
+    finirPlacement(pk);
+  }
+  function ajouterElement(b = {}) {
     const { el: f, fermer } = feuille('Ajouter à la carte', `
-      <p class="aide">Ce qui manque sur la carte : un ouvrage ou un passage à niveau, placé à son PK.</p>
-      ${choix('genre', [['viaduc', 'Viaduc'], ['pont', 'Pont'], ['tunnel', 'Tunnel'], ['pn', 'Passage à niveau']], 'viaduc').replace('class="segments "', 'class="segments cv-quatre"')}
-      <label class="champ"><span class="etiquette">Nom</span><input class="saisie" id="nom" maxlength="120" placeholder="ex. Viaduc de Barbin"></label>
-      <label class="champ"><span class="etiquette">PK</span><input class="saisie" id="pk" inputmode="decimal" placeholder="ex. 64,2"></label>
-      <div id="bloc-pn" hidden><p class="aide">Type du passage à niveau</p>${choix('type', [['auto', 'Automatique'], ['agricole', 'Agricole']], '')}</div>
+      <p class="aide">Ce qui manque sur la carte : un ouvrage ou un passage à niveau. Indiquez son PK, ou placez-le directement sur la carte.</p>
+      ${choix('genre', [['viaduc', 'Viaduc'], ['pont', 'Pont'], ['tunnel', 'Tunnel'], ['pn', 'Passage à niveau']], b.genre || 'viaduc').replace('class="segments "', 'class="segments cv-quatre"')}
+      <label class="champ"><span class="etiquette">Nom</span><input class="saisie" id="nom" maxlength="120" placeholder="ex. Viaduc de Barbin" value="${esc(b.nom || '')}"></label>
+      <label class="champ"><span class="etiquette">PK</span><input class="saisie" id="pk" inputmode="decimal" placeholder="ex. 64,2" value="${esc(b.pk || '')}"></label>
+      <button type="button" class="btn neutre" data-placer>Placer sur la carte</button>
+      <div id="bloc-pn" ${(b.genre || 'viaduc') === 'pn' ? '' : 'hidden'}><p class="aide">Type du passage à niveau</p>${choix('type', [['auto', 'Automatique'], ['agricole', 'Agricole']], b.type || '')}</div>
       <p class="erreur" id="err" role="alert"></p><button type="button" class="btn grand" data-ok>Ajouter</button>`, { focusChamp: false });
     brancherChoix(f);
     f.querySelector('[data-groupe="genre"]').addEventListener('click', () => { f.querySelector('#bloc-pn').hidden = lireChoix(f, 'genre') !== 'pn'; });
+    f.querySelector('[data-placer]').onclick = () => {
+      demarrerPlacement({ genre: lireChoix(f, 'genre'), nom: f.querySelector('#nom').value, pk: f.querySelector('#pk').value, type: lireChoix(f, 'type') });
+      fermer();
+    };
     f.querySelector('[data-ok]').onclick = () => {
       const err = f.querySelector('#err'), genre = lireChoix(f, 'genre');
       const nom = f.querySelector('#nom').value.trim(), pkTxt = f.querySelector('#pk').value.trim().replace(',', '.'), pk = Number(pkTxt);
@@ -357,7 +387,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
       enregistrer(() => onSauver({ genre, nom, pk, pn_type: genre === 'pn' ? lireChoix(f, 'type') || null : null }), fermer);
     };
   }
-  conteneur.querySelector('[data-ajout]')?.addEventListener('click', ajouterElement);
+  conteneur.querySelector('[data-ajout]')?.addEventListener('click', () => ajouterElement());
   conteneur.querySelector('[data-retablir]')?.addEventListener('click', () => enregistrer(async () => { for (const c of retires) await onSauver({ id: c.id, masque: false }); }, () => {}));
 
   new ResizeObserver(() => {
