@@ -54,6 +54,8 @@ function afficherNav(onglet) {
 
 async function router() {
   const mon = ++jeton;
+  const retourArriere = idEcran() != null;      // écran déjà visité (bouton Retour, geste, rechargement) : on remet le défilement
+  defilementLibre = false;
   const hash = location.hash.replace(/^#\/?/, '');
   if (/access_token=|error=|type=/.test(hash)) return;  // lien d'authentification en cours de lecture
   const [chemin, qs] = hash.split('?');
@@ -98,7 +100,28 @@ async function router() {
     ctx.rendre(`<div class="page"><div class="bandeau" role="alert">${esc(e.message || 'Une erreur est survenue.')}</div>
       <a class="btn neutre" href="#/accueil">Revenir à l'accueil</a></div>`);
   }
-  if (mon === jeton) window.scrollTo(0, 0);
+  if (mon === jeton) positionDefilement(retourArriere);
+}
+
+// ── Position de défilement : chaque écran de l'historique garde la sienne, « Retour » le replace où il était ──
+let positions = {}; try { positions = JSON.parse(sessionStorage.getItem('cfv-scroll') || '{}'); } catch {}
+let defilementLibre = false;          // faux pendant un changement d'écran : le contenu se vide et fausserait la mesure
+const idEcran = () => history.state && history.state.n;
+const garderPositions = () => { try { sessionStorage.setItem('cfv-scroll', JSON.stringify(positions)); } catch {} };
+let attente = 0;
+window.addEventListener('scroll', () => {
+  if (!defilementLibre || attente) return;
+  attente = requestAnimationFrame(() => { attente = 0; const n = idEcran(); if (n) positions[n] = Math.round(window.scrollY); });
+}, { passive: true });
+window.addEventListener('popstate', () => { defilementLibre = false; });
+window.addEventListener('pagehide', garderPositions);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') garderPositions(); });
+function positionDefilement(retour) {
+  let n = idEcran();
+  if (!n) { n = Date.now().toString(36) + Math.random().toString(36).slice(2, 6); history.replaceState({ n }, '', location.href); }
+  window.scrollTo(0, retour ? (positions[n] || 0) : 0);
+  if (!retour) positions[n] = 0;
+  defilementLibre = true;
 }
 
 api.surAuth((evt) => {
@@ -192,5 +215,6 @@ document.addEventListener('click', (e) => {
   const a = e.target.closest('[data-retour]');
   if (a && dejaNavigue) { e.preventDefault(); history.back(); }
 });
-let dejaNavigue = false;
-window.addEventListener('hashchange', () => { dejaNavigue = true; });
+// Mémorisé pour la durée de la session : l'appli peut être rechargée (mise à jour, téléphone qui la décharge) sans perdre l'historique.
+let dejaNavigue = false; try { dejaNavigue = sessionStorage.getItem('cfv-nav') === '1'; } catch {}
+window.addEventListener('hashchange', () => { dejaNavigue = true; try { sessionStorage.setItem('cfv-nav', '1'); } catch {} });

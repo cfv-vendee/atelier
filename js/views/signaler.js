@@ -119,7 +119,7 @@ export async function afficher(ctx) {
       const panneId = crypto.randomUUID();
       const resultat = await ctx.envois.envoyerOuGarder({ type: 'panne', panneId, donnees, fichiers: photos(), resume: titre });
       if (resultat === 'envoye') { toast('Signalement envoyé, merci !'); ctx.aller('panne/' + panneId, { remplacer: true }); }
-      else { toast('Pas de réseau : signalement gardé dans le téléphone. Il partira tout seul au retour du réseau.'); ctx.aller('accueil', { remplacer: true }); }
+      else { toast('Pas de réseau : signalement gardé dans le téléphone. Il partira tout seul au retour du réseau.'); history.length > 1 ? history.back() : ctx.aller('accueil', { remplacer: true }); }
     } catch (x) {
       err.textContent = x.message; bouton.disabled = false; bouton.textContent = 'Envoyer le signalement';
     }
