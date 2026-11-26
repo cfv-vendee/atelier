@@ -265,6 +265,20 @@ export function creerApi({ url, cle }) {
       if (r?.photo) verif(await sb.storage.from('photos').remove([r.photo]));
       verif(await sb.from('reperes').delete().eq('id', id));
     },
+    // Corrections et ajouts sur le plan de la ligne (référents voie et administrateurs).
+    async voieElements() { return avecCache('voie_elements', async () => verif(await sb.from('voie_elements').select('*').order('created_at'))); },
+    async sauverVoieElement({ id, cle, ...champs }) {
+      if (!navigator.onLine) throw erreur('Pas de connexion : le plan ne peut être modifié qu’avec le réseau.');
+      if (!id && cle) id = (verif(await sb.from('voie_elements').select('id').eq('cle', cle).maybeSingle()))?.id;
+      if (id) verif(await sb.from('voie_elements').update(champs).eq('id', id));
+      else verif(await sb.from('voie_elements').insert({ ...(cle ? { cle } : {}), ...champs }));
+      cache.vider();
+    },
+    async supprimerVoieElement(id) {
+      exigerId(id, 'Élément');
+      if (!navigator.onLine) throw erreur('Pas de connexion : le plan ne peut être modifié qu’avec le réseau.');
+      verif(await sb.from('voie_elements').delete().eq('id', id)); cache.vider();
+    },
     // Paramètres de l'appli : { cle: valeur, … }
     async parametres() {
       return avecCache('parametres', async () => Object.fromEntries((verif(await sb.from('parametres').select('cle, valeur, updated_at')) || [])

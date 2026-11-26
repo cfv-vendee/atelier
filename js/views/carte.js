@@ -1,14 +1,29 @@
-import { icone } from '../ui.js';
+import { icone, peutInspecter, toast } from '../ui.js';
 import { monterCarte } from '../carte-voie.js';
 
-// Plan interactif de la ligne : tracé, PK, gares, passages à niveau, évitements, tiroirs et problèmes en cours.
+// Plan interactif de la ligne : tracé, PK, gares, passages à niveau, ouvrages, évitements, tiroirs et problèmes en cours.
+// Les référents voie et les administrateurs peuvent corriger les éléments tirés d'OpenStreetMap et en ajouter.
 export async function afficher(ctx) {
-  const pannes = await ctx.api.pannes({ cible: 'voie' }).catch(() => []);
+  const { api, moi } = ctx;
+  const [pannes, elements] = await Promise.all([api.pannes({ cible: 'voie' }).catch(() => []), api.voieElements().catch(() => [])]);
   const el = ctx.rendre(`
   <div class="barre"><a class="retour" href="#/voie" data-retour aria-label="Retour à la voie">${icone('retour')}</a><h1>Plan de la ligne</h1></div>
   <div class="page plan-page"><div id="plan" class="plan"></div></div>`);
   if (!el) return;
-  const plan = monterCarte(el.querySelector('#plan'), { pannes });
+  const zone = el.querySelector('#plan');
+  let plan, corrections = elements;
+  const monter = (etat) => {
+    plan = monterCarte(zone, { pannes, corrections, peutModifier: peutInspecter(moi), etat, choisi: etat?.selection || null,
+      onSauver: async (e) => { await api.sauverVoieElement(e); await rafraichir(); },
+      onSupprimer: async (id) => { await api.supprimerVoieElement(id); await rafraichir(); } });
+  };
+  async function rafraichir() {
+    const etat = plan?.etat();
+    corrections = await api.voieElements().catch(() => corrections);
+    monter(etat);
+    toast('Plan mis à jour');
+  }
+  monter(null);
   const id = ctx.params?.[0];
   if (id) plan.choisir('panne:' + id);
 }

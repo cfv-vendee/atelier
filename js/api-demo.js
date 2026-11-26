@@ -214,6 +214,15 @@ export function creerApi() {
       Object.assign(r, champs); sauver();
     },
     async supprimerRepere(id) { exiger(peutInspecter(moi())); d.reperes = (d.reperes || []).filter((r) => r.id !== id); sauver(); },
+    async voieElements() { return (d.voie_elements || []).map((e) => ({ ...e })); },
+    async sauverVoieElement({ id, cle, ...champs }) {
+      exiger(peutInspecter(moi()));
+      d.voie_elements ??= [];
+      let e = d.voie_elements.find((x) => (id ? x.id === id : cle && x.cle === cle));
+      if (!e) { e = { id: uid(), cle: cle || null, genre: null, nom: null, pn_type: null, pk: null, masque: false, auteur_id: moi().id, created_at: new Date().toISOString() }; d.voie_elements.push(e); }
+      Object.assign(e, champs); sauver();
+    },
+    async supprimerVoieElement(id) { exiger(peutInspecter(moi())); d.voie_elements = (d.voie_elements || []).filter((x) => x.id !== id); sauver(); },
     async parametres() { return { ...(d.parametres || {}) }; },
     async majParametre(cle, valeur) { exiger(moi()?.est_admin || (cle === 'voie_configuree' && peutInspecter(moi()))); d.parametres = { ...(d.parametres || {}), [cle]: valeur }; sauver(); },
 

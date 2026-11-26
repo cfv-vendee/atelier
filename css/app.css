@@ -330,7 +330,11 @@ html[data-plateforme="android"], html[data-plateforme="autre"] { --reseau-haut: 
 .cv-pk { fill: #fff; stroke: #6B7280; stroke-width: 1.5; }
 .cv-gare { fill: var(--vert); stroke: #fff; stroke-width: 2; }
 .cv-m { cursor: pointer; }
-.cv-sans-nom .cv-t-pn { display: none; }
+.cv-sans-nom .cv-t-pn, .cv-sans-nom .cv-t-ouv { display: none; }
+.cv-t-ouv { font-size: 12px; fill: #5A4220; }
+.cv-edition { display: flex; flex-wrap: wrap; gap: 8px; } .cv-edition .btn { min-height: 44px; font-size: 15px; }
+.cv-modifier { min-height: 40px; font-size: 15px; margin-top: 4px; }
+.segments.cv-quatre { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .cv-choisi circle:not([fill="transparent"]), .cv-choisi rect, .cv-choisi path { filter: drop-shadow(0 0 4px rgba(23,92,211,.9)); }
 .cv-choisi .cv-t { fill: var(--bleu); }
 .carte-bouton-plan { display: flex; align-items: center; gap: 10px; text-decoration: none; }

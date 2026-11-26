@@ -1,7 +1,7 @@
 // Plan interactif de la ligne Les Herbiers – Mortagne-sur-Sèvre : dessin vectoriel (SVG), sans fond de carte en ligne,
 // donc utilisable hors connexion. Glisser pour déplacer, pincer ou molette pour zoomer, toucher un élément pour le détail.
 import { VOIE } from './voie-cfv.js';
-import { esc, GRAVITES, formatPk as formatPkPrecis, ELEMENTS } from './ui.js';
+import { esc, GRAVITES, formatPk as formatPkPrecis, ELEMENTS, feuille, toast, pkDansLaLigne, messagePkHorsLigne, LIGNE as PK_LIGNE } from './ui.js';
 const formatPk = (pk) => formatPkPrecis(Math.round(Number(pk) * 10) / 10);      // au dixième : c'est la précision des données
 
 const LAT0 = 46.93;
@@ -46,14 +46,19 @@ function pointAuPk(pk) {
 }
 
 const TYPES_PN = {
-  auto: { label: 'Automatique', detail: 'feux et cloche (d’après OpenStreetMap)', couleur: '#175CD3' },
-  barrieres: { label: 'À barrières', detail: 'barrières sans feux relevés (d’après OpenStreetMap), type à confirmer', couleur: '#C26A00' },
+  auto: { label: 'Automatique', detail: 'feux et cloche', couleur: '#175CD3' },
+  manuel: { label: 'Manuel', detail: 'gardé ou manœuvré à la main', couleur: '#C26A00' },
+  barrieres: { label: 'À barrières (à confirmer)', detail: 'barrières relevées sur OpenStreetMap, manuel ou automatique à confirmer', couleur: '#C26A00' },
   inconnu: { label: 'Type non renseigné', detail: 'à préciser sur le terrain', couleur: '#8A919C' },
 };
 const typePn = (p) => TYPES_PN[p.type] || TYPES_PN.inconnu;
+const LIB_OUVRAGE = { viaduc: 'Viaduc', pont: 'Pont', tunnel: 'Tunnel' };
+const COUL_OUVRAGE = '#7A5C2E';
+const mil = (c) => c[Math.floor(c.length / 2)];
+const cleDe = (prefixe, c) => { const p = mil(c); return `${prefixe}:${p[1].toFixed(4)},${p[0].toFixed(4)}`; };
 const COUL_ANNEXE = { evitement: '#175CD3', tiroir: '#7A3FB0' };
 const LIB_ANNEXE = { evitement: "Voie d'évitement", tiroir: 'Tiroir (voie en cul-de-sac)' };
-const COUCHES = [['gares', 'Gares'], ['pn', 'Passages à niveau'], ['pk', 'PK'], ['annexes', 'Évitements et tiroirs'], ['pannes', 'Problèmes']];
+const COUCHES = [['gares', 'Gares'], ['pn', 'Passages à niveau'], ['ouvrages', 'Ouvrages'], ['pk', 'PK'], ['annexes', 'Évitements et tiroirs'], ['pannes', 'Problèmes']];
 
 const el = (nom, attrs = {}, parent) => {
   const n = document.createElementNS(NS, nom);
@@ -62,18 +67,23 @@ const el = (nom, attrs = {}, parent) => {
 };
 const chemin = (pts) => 'M' + pts.map((p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join('L');
 
-export function monterCarte(conteneur, { pannes = [], onChoisir = () => {}, choisi = null } = {}) {
-  const visibles = { gares: true, pn: true, pk: true, annexes: true, pannes: true };
+export function monterCarte(conteneur, { pannes = [], corrections = [], peutModifier = false, onSauver = async () => {}, onSupprimer = async () => {}, onChoisir = () => {}, choisi = null, etat = null } = {}) {
+  const visibles = { gares: true, pn: true, ouvrages: true, pk: true, annexes: true, pannes: true, ...(etat?.visibles || {}) };
+  const corr = new Map(corrections.filter((c) => c.cle).map((c) => [c.cle, c]));
+  const ajouts = corrections.filter((c) => !c.cle);
+  const retires = corrections.filter((c) => c.cle && c.masque);
   conteneur.innerHTML = `
     <div class="cv-zone"><svg class="cv-svg" role="img" aria-label="Plan de la ligne"></svg>
       <div class="cv-zoom"><button type="button" data-z="+" aria-label="Zoom avant">+</button><button type="button" data-z="-" aria-label="Zoom arrière">−</button>
         <button type="button" data-z="0" aria-label="Voir toute la ligne">⤢</button></div>
       <div class="cv-detail" hidden></div></div>
-    <div class="cv-couches" role="group" aria-label="Éléments affichés">${COUCHES.map(([id, nom]) => `<button type="button" data-c="${id}" aria-pressed="true">${esc(nom)}</button>`).join('')}</div>
+    <div class="cv-couches" role="group" aria-label="Éléments affichés">${COUCHES.map(([id, nom]) => `<button type="button" data-c="${id}" aria-pressed="${visibles[id]}">${esc(nom)}</button>`).join('')}</div>
+    ${peutModifier ? `<div class="cv-edition"><button type="button" class="btn neutre" data-ajout>${'+'} Ajouter un ouvrage ou un PN</button>
+      ${retires.length ? `<button type="button" class="btn neutre" data-retablir>Rétablir ${retires.length} élément${retires.length > 1 ? 's' : ''} retiré${retires.length > 1 ? 's' : ''}</button>` : ''}</div>` : ''}
     <div class="cv-legende" aria-label="Légende">
       <span><i class="cv-l-pn" style="background:#175CD3"></i>PN automatique</span><span><i class="cv-l-pn" style="background:#C26A00"></i>PN à barrières</span>
       <span><i class="cv-l-pn" style="background:#8A919C"></i>PN type non renseigné</span><span><i class="cv-l-li" style="background:#175CD3"></i>Évitement</span>
-      <span><i class="cv-l-li" style="background:#7A3FB0"></i>Tiroir</span></div>
+      <span><i class="cv-l-li" style="background:#7A3FB0"></i>Tiroir</span><span><i class="cv-l-li" style="background:#7A5C2E"></i>Viaduc, pont</span></div>
     <p class="aide cv-source">Tracé, gares et passages à niveau : © contributeurs OpenStreetMap. PK : SNCF Réseau, via Carto Tchoo. Données à confirmer avec le relevé de terrain.</p>`;
   const svg = conteneur.querySelector('.cv-svg'), detail = conteneur.querySelector('.cv-detail');
   const g = el('g', {}, svg), gLignes = el('g', {}, g);
@@ -81,18 +91,36 @@ export function monterCarte(conteneur, { pannes = [], onChoisir = () => {}, choi
   let k = 0.05, tx = 0, ty = 0, kMin = 0.01, ajuste = false, selection = choisi;
   const taille = () => svg.getBoundingClientRect();
 
+  // ── Éléments du plan d'origine, avec les corrections des référents voie ──
+  const annexes = ANNEXES.map((x) => { const cle = cleDe('annexe', x.c), c = corr.get(cle); return { ...x, cle, corr: c, genre: c?.genre || x.genre, masque: !!c?.masque }; }).filter((x) => !x.masque);
+  const ouvrages = OUVRAGES.map((o) => {
+    const cle = cleDe('ouvrage', o.c), c = corr.get(cle), defaut = o.genre === 'pont' && o.longueur >= 100 ? 'viaduc' : o.genre;
+    return { ...o, cle, corr: c, genre: c?.genre || defaut, nom: c?.nom || o.nom, masque: !!c?.masque };
+  }).filter((o) => !o.masque);
+  const pns = VOIE.pn.map((q) => { const cle = 'pn:' + q.nom, c = corr.get(cle); return { ...q, cle, corr: c, type: c?.pn_type || q.type, masque: !!c?.masque }; }).filter((q) => !q.masque);
+
   // ── Tracé : annexes, ouvrages, puis ligne principale « façon rail » ──
   const gAnn = el('g', {}, gLignes);
-  ANNEXES.forEach((a, i) => el('path', { d: chemin(a.m), fill: 'none', stroke: COUL_ANNEXE[a.genre], 'stroke-width': 3.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, gAnn));
-  OUVRAGES.filter((o) => o.genre === 'pont').forEach((o) => el('path', { d: chemin(o.m), fill: 'none', stroke: '#8A919C', 'stroke-width': 10, 'stroke-linecap': 'butt', 'vector-effect': 'non-scaling-stroke', opacity: .55 }, gLignes));
+  annexes.forEach((x) => el('path', { d: chemin(x.m), fill: 'none', stroke: COUL_ANNEXE[x.genre], 'stroke-width': 3.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, gAnn));
+  ouvrages.filter((o) => o.genre !== 'tunnel').forEach((o) => el('path', { d: chemin(o.m), fill: 'none', stroke: COUL_OUVRAGE, 'stroke-width': 11, 'stroke-linecap': 'butt', 'vector-effect': 'non-scaling-stroke', opacity: .55 }, gLignes));
   el('path', { d: chemin(LIGNE), fill: 'none', stroke: '#2F3540', 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, gLignes);
   el('path', { d: chemin(LIGNE), fill: 'none', stroke: '#FFFFFF', 'stroke-width': 1.6, 'stroke-dasharray': '6 6', 'vector-effect': 'non-scaling-stroke' }, gLignes);
-  OUVRAGES.filter((o) => o.genre === 'tunnel').forEach((o) => el('path', { d: chemin(o.m), fill: 'none', stroke: '#2F3540', 'stroke-width': 9, 'stroke-dasharray': '3 3', 'vector-effect': 'non-scaling-stroke' }, gLignes));
+  ouvrages.filter((o) => o.genre === 'tunnel').forEach((o) => el('path', { d: chemin(o.m), fill: 'none', stroke: '#2F3540', 'stroke-width': 9, 'stroke-dasharray': '3 3', 'vector-effect': 'non-scaling-stroke' }, gLignes));
 
   // ── Marqueurs (positions recalculées à chaque déplacement, taille fixe à l'écran) ──
   const marq = [];       // { id, genre, x, y, noeud, couche, rendu(k) }
   const ajouter = (m) => { m.noeud = el('g', { 'data-id': m.id, class: 'cv-m cv-m-' + m.genre }, gMarq); marq.push(m); m.dessin(m.noeud); return m; };
   const texte = (parent, t, dx, dy, cls = '') => { const n = el('text', { x: dx, y: dy, class: 'cv-t ' + cls }, parent); n.textContent = t; return n; };
+  const dessinPn = (q) => (n) => {
+    el('circle', { r: 17, fill: 'transparent' }, n); el('circle', { r: 6, fill: typePn(q).couleur, stroke: '#fff', 'stroke-width': 2 }, n);
+    el('path', { d: 'M-3 -3 3 3M3 -3 -3 3', stroke: '#fff', 'stroke-width': 1.6, 'stroke-linecap': 'round' }, n);
+    texte(n, q.nom.replace('PN ', ''), 9, -7, 'cv-t-pn');
+  };
+  const dessinOuvrage = (o) => (n) => {
+    el('circle', { r: 17, fill: 'transparent' }, n); el('rect', { x: -10, y: -8, width: 20, height: 16, rx: 4, fill: COUL_OUVRAGE, stroke: '#fff', 'stroke-width': 2 }, n);
+    el('path', { d: o.genre === 'tunnel' ? 'M-5 4V0a5 5 0 0 1 10 0v4' : 'M-6 4v-2M6 4v-2M-6 2a3 3 0 0 1 6 0M0 2a3 3 0 0 1 6 0', fill: 'none', stroke: '#fff', 'stroke-width': 1.6, 'stroke-linecap': 'round' }, n);
+    texte(n, o.nom || LIB_OUVRAGE[o.genre], 14, 4, 'cv-t-ouv');
+  };
 
   VOIE.jalons.forEach((j) => {
     const [x, y] = monde(j.c[0], j.c[1]);
@@ -104,22 +132,28 @@ export function monterCarte(conteneur, { pannes = [], onChoisir = () => {}, choi
       el('circle', { r: 20, fill: 'transparent' }, n); el('rect', { x: -8, y: -8, width: 16, height: 16, rx: 4, class: 'cv-gare' }, n);
       texte(n, ga.nom, 13, 4, 'cv-t-gare'); } });
   });
-  VOIE.pn.forEach((p) => {
-    const [x, y] = monde(p.lng, p.lat), c = typePn(p).couleur;
-    ajouter({ id: 'pn:' + p.nom, genre: 'pn', couche: 'pn', x, y, data: p, dessin: (n) => {
-      el('circle', { r: 17, fill: 'transparent' }, n); el('circle', { r: 6, fill: c, stroke: '#fff', 'stroke-width': 2 }, n);
-      el('path', { d: 'M-3 -3 3 3M3 -3 -3 3', stroke: '#fff', 'stroke-width': 1.6, 'stroke-linecap': 'round' }, n);
-      texte(n, p.nom.replace('PN ', ''), 9, -7, 'cv-t-pn'); } });
+  pns.forEach((q) => { const [x, y] = monde(q.lng, q.lat); ajouter({ id: 'pn:' + q.nom, genre: 'pn', couche: 'pn', x, y, data: q, dessin: dessinPn(q) }); });
+  ajouts.filter((e) => e.genre === 'pn').forEach((e) => {
+    const [x, y] = pointAuPk(Number(e.pk)), q = { nom: e.nom, pk: Number(e.pk), type: e.pn_type, cle: null, corr: e };
+    ajouter({ id: 'ajout:' + e.id, genre: 'pn', couche: 'pn', x, y, data: q, dessin: dessinPn(q) });
+  });
+  ouvrages.forEach((o, i) => {
+    const m0 = mil(o.m);
+    ajouter({ id: 'ouvrage:' + i, genre: 'ouvrage', couche: 'ouvrages', x: m0[0], y: m0[1], data: o, dessin: dessinOuvrage(o) });
+  });
+  ajouts.filter((e) => e.genre !== 'pn').forEach((e) => {
+    const [x, y] = pointAuPk(Number(e.pk)), o = { genre: e.genre, nom: e.nom, pk: Number(e.pk), longueur: null, cle: null, corr: e };
+    ajouter({ id: 'ajout:' + e.id, genre: 'ouvrage', couche: 'ouvrages', x, y, data: o, dessin: dessinOuvrage(o) });
   });
   VOIE.tampons.forEach((t, i) => {
     const [x, y] = monde(t.lng, t.lat);
     ajouter({ id: 'tampon' + i, genre: 'tampon', couche: 'annexes', x, y, dessin: (n) => el('rect', { x: -3, y: -3, width: 6, height: 6, fill: '#2F3540' }, n) });
   });
-  ANNEXES.forEach((a, i) => {
-    const mid = a.m[Math.floor(a.m.length / 2)], L = longueur(a.m);
+  annexes.forEach((x0, i) => {
+    const m0 = mil(x0.m), L = longueur(x0.m);
     if (L < 60) return;
-    ajouter({ id: 'annexe:' + i, genre: 'annexe', couche: 'annexes', x: mid[0], y: mid[1], data: { ...a, longueur: Math.round(L) }, dessin: (n) => {
-      el('circle', { r: 15, fill: 'transparent' }, n); el('circle', { r: 4.5, fill: '#fff', stroke: COUL_ANNEXE[a.genre], 'stroke-width': 2.5 }, n); } });
+    ajouter({ id: 'annexe:' + i, genre: 'annexe', couche: 'annexes', x: m0[0], y: m0[1], data: { ...x0, longueur: Math.round(L) }, dessin: (n) => {
+      el('circle', { r: 15, fill: 'transparent' }, n); el('circle', { r: 4.5, fill: '#fff', stroke: COUL_ANNEXE[x0.genre], 'stroke-width': 2.5 }, n); } });
   });
   pannes.filter((p) => p.cible === 'voie' && p.statut !== 'reparee').forEach((p) => {
     const pt = p.lat != null && p.lng != null ? monde(p.lng, p.lat) : p.pk != null ? pointAuPk(Number(p.pk)) : null;
@@ -141,7 +175,7 @@ export function monterCarte(conteneur, { pannes = [], onChoisir = () => {}, choi
       if (m.genre === 'annexe') vis = vis && k > 0.03;
       m.noeud.style.display = vis ? '' : 'none';
       m.noeud.classList.toggle('cv-choisi', m.id === selection);
-      m.noeud.classList.toggle('cv-sans-nom', m.genre === 'pn' && k < 0.045);
+      m.noeud.classList.toggle('cv-sans-nom', (m.genre === 'pn' && k < 0.045) || (m.genre === 'ouvrage' && k < 0.03));
       if (m.genre === 'gare') {                       // le nom passe à gauche du point près du bord droit
         const gauche = m.x * k + tx > larg * 0.5, t = m.noeud.querySelector('text');
         t.setAttribute('x', gauche ? -13 : 13); t.setAttribute('text-anchor', gauche ? 'end' : 'start');
@@ -203,25 +237,92 @@ export function monterCarte(conteneur, { pannes = [], onChoisir = () => {}, choi
   });
 
   // ── Détail de l'élément choisi ──
+  const fiche = (m) => {
+    const d = m.data;
+    if (m.genre === 'gare') return `<b>${esc(d.nom)}</b><span>Gare · ${esc(formatPk(d.pk))}</span>`;
+    if (m.genre === 'pn') { const t = typePn(d); return `<b>${esc(d.nom)}</b><span>Passage à niveau · ${esc(formatPk(d.pk))}</span>
+      <span class="cv-pastille" style="--c:${t.couleur}">${esc(t.label)}</span><span class="aide">${esc(t.detail)}</span>`; }
+    if (m.genre === 'ouvrage') return `<b>${esc(d.nom || LIB_OUVRAGE[d.genre])}</b><span>${esc(LIB_OUVRAGE[d.genre])} · ${esc(formatPk(d.pk))}${d.longueur ? ` · environ ${d.longueur} m` : ''}</span>
+      <span class="aide">${d.corr ? 'Renseigné par un référent voie.' : 'D’après OpenStreetMap, à vérifier sur le terrain.'}</span>`;
+    if (m.genre === 'annexe') return `<b>${esc(LIB_ANNEXE[d.genre])}</b><span>Environ ${d.longueur} m</span>
+      <span class="aide">${d.corr ? 'Classé par un référent voie.' : 'Classement automatique d’après OpenStreetMap, à vérifier sur le terrain.'}</span>`;
+    if (m.genre === 'pk') return `<b>${esc(formatPk(m.pk))}</b><span>Point kilométrique</span>`;
+    if (m.genre === 'panne') return `<b>${esc(d.titre)}</b><span>${esc(GRAVITES[d.gravite].label)} · ${esc(ELEMENTS[d.element] || 'Voie')}${d.pk != null ? ' · ' + esc(formatPk(d.pk)) : ''}</span>
+        <a class="btn second" href="#/panne/${esc(d.id)}">Voir le problème</a>`;
+    return '';
+  };
   function choisir(id) {
     selection = id; rendre();
     const m = marq.find((x) => x.id === id);
     if (!m || m.genre === 'tampon') { detail.hidden = true; onChoisir(null); return; }
-    let h = '';
-    if (m.genre === 'gare') h = `<b>${esc(m.data.nom)}</b><span>Gare · ${esc(formatPk(m.data.pk))}</span>`;
-    else if (m.genre === 'pn') { const t = typePn(m.data); h = `<b>${esc(m.data.nom)}</b><span>Passage à niveau · ${esc(formatPk(m.data.pk))}</span>
-      <span class="cv-pastille" style="--c:${t.couleur}">${esc(t.label)}</span><span class="aide">${esc(t.detail)}</span>`; }
-    else if (m.genre === 'annexe') h = `<b>${esc(LIB_ANNEXE[m.data.genre])}</b><span>Environ ${m.data.longueur} m</span><span class="aide">Classement automatique d’après OpenStreetMap, à vérifier sur le terrain.</span>`;
-    else if (m.genre === 'pk') h = `<b>${esc(formatPk(m.pk))}</b><span>Point kilométrique</span>`;
-    else if (m.genre === 'panne') { const p = m.data;
-      h = `<b>${esc(p.titre)}</b><span>${esc(GRAVITES[p.gravite].label)} · ${esc(ELEMENTS[p.element] || 'Voie')}${p.pk != null ? ' · ' + esc(formatPk(p.pk)) : ''}</span>
-        <a class="btn second" href="#/panne/${esc(p.id)}">Voir le problème</a>`; }
-    detail.innerHTML = h; detail.hidden = false; onChoisir(m);
+    const modifiable = peutModifier && ['pn', 'ouvrage', 'annexe'].includes(m.genre);
+    detail.innerHTML = fiche(m) + (modifiable ? '<button type="button" class="btn neutre cv-modifier" data-modifier>Modifier</button>' : '');
+    detail.hidden = false; onChoisir(m);
+    detail.querySelector('[data-modifier]')?.addEventListener('click', () => modifier(m));
   }
 
-  new ResizeObserver(() => { if (!ajuste) ajuster(); else rendre(); }).observe(svg);
+  // ── Édition (référents voie et administrateurs) ──
+  const choix = (nom, liste, courant) => `<div class="segments ${liste.length === 3 ? 'trois' : ''}" role="group" data-groupe="${nom}">${liste.map(([v, l]) =>
+    `<button type="button" data-v="${v}" aria-pressed="${v === courant}">${esc(l)}</button>`).join('')}</div>`;
+  const lireChoix = (el0, nom) => el0.querySelector(`[data-groupe="${nom}"] [aria-pressed="true"]`)?.dataset.v ?? '';
+  const brancherChoix = (el0) => el0.querySelectorAll('[data-groupe]').forEach((gr) => gr.addEventListener('click', (e) => {
+    const b = e.target.closest('button'); if (!b) return;
+    gr.querySelectorAll('button').forEach((x) => x.setAttribute('aria-pressed', x === b));
+  }));
+  async function enregistrer(fn, fermer) {
+    try { await fn(); fermer(); } catch (e) { toast(e.message || 'Enregistrement impossible.'); }
+  }
+  function modifier(m) {
+    const d = m.data, titre = m.genre === 'pn' ? d.nom : m.genre === 'annexe' ? LIB_ANNEXE[d.genre] : (d.nom || LIB_OUVRAGE[d.genre]);
+    let corps = '';
+    if (m.genre === 'pn') corps = `<p class="aide">Type du passage à niveau</p>${choix('type', [['manuel', 'Manuel'], ['auto', 'Automatique'], ['', 'Selon OSM']], d.corr?.pn_type || '')}`;
+    if (m.genre === 'annexe') corps = `<p class="aide">Classement de cette voie</p>${choix('genre', [['evitement', 'Évitement'], ['tiroir', 'Tiroir']], d.genre)}`;
+    if (m.genre === 'ouvrage') corps = `<label class="champ"><span class="etiquette">Nom (facultatif)</span><input class="saisie" id="nom" maxlength="120" value="${esc(d.nom || '')}"></label>
+      <p class="aide">Type d’ouvrage</p>${choix('genre', [['viaduc', 'Viaduc'], ['pont', 'Pont'], ['tunnel', 'Tunnel']], d.genre)}`;
+    const ajoute = !d.cle;     // élément ajouté à la main : on peut le supprimer ; sinon on peut seulement le retirer de la carte
+    const { el: f, fermer } = feuille(titre, `${corps}<p class="erreur" id="err" role="alert"></p>
+      <button type="button" class="btn grand" data-ok>Enregistrer</button>
+      <button type="button" class="btn neutre" data-retirer>${ajoute ? 'Supprimer cet élément' : 'Retirer de la carte'}</button>`, { focusChamp: false });
+    brancherChoix(f);
+    f.querySelector('[data-ok]').onclick = () => enregistrer(async () => {
+      const base = d.cle ? { id: d.corr?.id, cle: d.cle } : { id: d.corr.id };
+      const champs = {};
+      if (m.genre === 'pn') champs.pn_type = lireChoix(f, 'type') || null;
+      if (m.genre === 'annexe') champs.genre = lireChoix(f, 'genre');
+      if (m.genre === 'ouvrage') { champs.genre = lireChoix(f, 'genre'); champs.nom = f.querySelector('#nom').value.trim() || null; }
+      await onSauver({ ...base, ...champs, masque: false });
+    }, fermer);
+    f.querySelector('[data-retirer]').onclick = () => enregistrer(async () => {
+      if (ajoute) await onSupprimer(d.corr.id); else await onSauver({ id: d.corr?.id, cle: d.cle, masque: true });
+    }, fermer);
+  }
+  function ajouterElement() {
+    const { el: f, fermer } = feuille('Ajouter à la carte', `
+      <p class="aide">Ce qui manque sur la carte : un ouvrage ou un passage à niveau, placé à son PK.</p>
+      ${choix('genre', [['viaduc', 'Viaduc'], ['pont', 'Pont'], ['tunnel', 'Tunnel'], ['pn', 'Passage à niveau']], 'viaduc').replace('class="segments "', 'class="segments cv-quatre"')}
+      <label class="champ"><span class="etiquette">Nom</span><input class="saisie" id="nom" maxlength="120" placeholder="ex. Viaduc de Barbin"></label>
+      <label class="champ"><span class="etiquette">PK</span><input class="saisie" id="pk" inputmode="decimal" placeholder="ex. 64,2"></label>
+      <div id="bloc-pn" hidden><p class="aide">Type du passage à niveau</p>${choix('type', [['manuel', 'Manuel'], ['auto', 'Automatique'], ['', 'À préciser']], '')}</div>
+      <p class="erreur" id="err" role="alert"></p><button type="button" class="btn grand" data-ok>Ajouter</button>`, { focusChamp: false });
+    brancherChoix(f);
+    f.querySelector('[data-groupe="genre"]').addEventListener('click', () => { f.querySelector('#bloc-pn').hidden = lireChoix(f, 'genre') !== 'pn'; });
+    f.querySelector('[data-ok]').onclick = () => {
+      const err = f.querySelector('#err'), genre = lireChoix(f, 'genre');
+      const nom = f.querySelector('#nom').value.trim(), pkTxt = f.querySelector('#pk').value.trim().replace(',', '.'), pk = Number(pkTxt);
+      if (!nom) return (err.textContent = 'Donnez un nom, par exemple « Viaduc de Barbin » ou « PN 47 ».');
+      if (!pkTxt || Number.isNaN(pk) || !pkDansLaLigne(pk)) return (err.textContent = messagePkHorsLigne);
+      enregistrer(() => onSauver({ genre, nom, pk, pn_type: genre === 'pn' ? lireChoix(f, 'type') || null : null }), fermer);
+    };
+  }
+  conteneur.querySelector('[data-ajout]')?.addEventListener('click', ajouterElement);
+  conteneur.querySelector('[data-retablir]')?.addEventListener('click', () => enregistrer(async () => { for (const c of retires) await onSauver({ id: c.id, masque: false }); }, () => {}));
+
+  new ResizeObserver(() => {
+    if (!ajuste) { if (etat?.k) { k = etat.k; tx = etat.tx; ty = etat.ty; kMin = etat.kMin; ajuste = true; rendre(); if (selection) choisir(selection); } else ajuster(); }
+    else rendre();
+  }).observe(svg);
   rendre();
-  return { ajuster, choisir, centrerSur, pointAuPk, destroy() {} };
+  return { ajuster, choisir, centrerSur, pointAuPk, etat: () => ({ k, tx, ty, kMin, visibles: { ...visibles }, selection }), destroy() {} };
 }
 
 export { VOIE, pointAuPk };
