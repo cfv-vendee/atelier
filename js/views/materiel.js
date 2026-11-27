@@ -1,4 +1,4 @@
-import { esc, icone, pastille, ETATS, CATEGORIES, GRAVITES, STATUTS, nomEngin, quand } from '../ui.js';
+import { etatTimbre, esc, icone, pastille, ETATS, CATEGORIES, GRAVITES, STATUTS, nomEngin, quand } from '../ui.js';
 import { formulaireEngin } from './engin.js';
 
 const FILTRES = [['tout', 'Tout'], ['vapeur', 'Vapeur'], ['diesel', 'Diesel'], ['loco', 'Locotracteurs'], ['autorail', 'Autorails'], ['draisine', 'Draisines'], ['voiture', 'Voitures']];
@@ -47,7 +47,8 @@ export async function afficher(ctx) {
         <span class="code ${COULEUR_ETAT[e.etat]}">${CATEGORIES[e.categorie].code}</span>
         <span class="txt"><span class="t">${esc(nomEngin(e))}</span><span class="m">${esc([e.constructeur, e.annee].filter(Boolean).join(' · '))}</span></span>
         <span style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">${pastille(ETATS[e.etat])}
-          ${e.pannes_ouvertes ? `<span class="aide">${e.pannes_ouvertes} panne${e.pannes_ouvertes > 1 ? 's' : ''} en cours</span>` : ''}</span>
+          ${e.pannes_ouvertes ? `<span class="aide">${e.pannes_ouvertes} panne${e.pannes_ouvertes > 1 ? 's' : ''} en cours</span>` : ''}
+          ${(() => { const t = e.categorie === 'vapeur' ? etatTimbre(e.timbre_valide_jusqu) : null; return t && t.cls !== 'green' ? pastille({ cls: t.cls, label: t.court }) : ''; })()}</span>
       </a>`).join('') || '<p class="vide">Aucun engin ne correspond.</p>';
   };
 

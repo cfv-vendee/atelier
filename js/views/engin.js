@@ -1,4 +1,4 @@
-import { esc, icone, pastille, ETATS, CATEGORIES, GRAVITES, STATUTS, nomEngin, peutSignaler, peutReparer, feuille, toast } from '../ui.js';
+import { etatTimbre, dateLongue, esc, icone, pastille, ETATS, CATEGORIES, GRAVITES, STATUTS, nomEngin, peutSignaler, peutReparer, feuille, toast } from '../ui.js';
 import { qrSvg } from '../qr.js';
 import { lienEngin } from '../scanner.js';
 import { lignePanne } from './accueil.js';
@@ -11,6 +11,10 @@ export async function afficher(ctx) {
   const ouvertes = pannes.filter((p) => p.statut !== 'reparee'), anciennes = pannes.filter((p) => p.statut === 'reparee');
   let onglet = ouvertes.length ? 'pannes' : 'fiche';
 
+  const timbre = e.categorie === 'vapeur' ? etatTimbre(e.timbre_valide_jusqu) : null;
+  const blocTimbre = e.categorie !== 'vapeur' ? ''
+    : timbre ? `<div class="carte timbre timbre-${timbre.cls}"><b>${icone('chaudiere', 20)}${esc(timbre.titre)}</b>${timbre.detail ? `<span>${esc(timbre.detail)}</span>` : ''}<span class="aide">Timbre de la chaudière (homologation)</span></div>`
+    : `<div class="carte timbre"><b>${icone('chaudiere', 20)}Timbre de la chaudière non renseigné</b>${moi.est_admin ? '<span class="aide">Indiquez la date de validité dans « Modifier la fiche ».</span>' : ''}</div>`;
   const el = ctx.rendre(`
   <div class="barre"><a class="retour" href="#/materiel" data-retour aria-label="Retour au parc">${icone('retour')}</a>
     <span class="sous">${esc(CATEGORIES[e.categorie].label)}</span></div>
@@ -25,6 +29,7 @@ export async function afficher(ctx) {
       <button class="btn second" id="qr">${icone('qr', 20)}QR code</button>
       <button class="btn second" id="exporter">${icone('envoi', 20)}Exporter</button>
     </div>
+    ${blocTimbre}
     ${e.notes ? `<div class="bandeau">${esc(e.notes)}</div>` : ''}
     ${moi.est_admin ? `<button class="btn neutre" id="modifier">${icone('crayon', 20)}Modifier la fiche</button>` : ''}
     <div class="segments" role="tablist" aria-label="Sections">
@@ -57,7 +62,7 @@ export async function afficher(ctx) {
 
     return fichePdf({
       titre: `${e.designation}${e.surnom ? ` « ${e.surnom} »` : ''}`,
-      sousTitre: `Chemin de fer de la Vendée · ${ETATS[e.etat]?.label || ''} · édité le ${jour(new Date())}`,
+      sousTitre: `Chemin de fer de la Vendée · ${ETATS[e.etat]?.label || ''}${e.categorie === 'vapeur' && e.timbre_valide_jusqu ? ` · timbre valable jusqu'au ${dateLongue(e.timbre_valide_jusqu)}` : ''} · édité le ${jour(new Date())}`,
       resume: [
         { valeur: ouvertes.length, libelle: ouvertes.length > 1 ? 'problèmes en cours' : 'problème en cours' },
         { valeur: ouvertes.filter((p) => p.gravite === 'bloquante').length, libelle: 'bloquants' },
@@ -154,6 +159,8 @@ export function formulaireEngin(ctx, e = null) {
     <div class="champ"><label for="des">Désignation (n° ou nom officiel)</label><input class="saisie" id="des" value="${esc(e?.designation || '')}"></div>
     <div class="btns"><div class="champ"><label for="sur">Surnom</label><input class="saisie" id="sur" value="${esc(e?.surnom || '')}"></div>
       <div class="champ"><label for="an">Année</label><input class="saisie" id="an" value="${esc(e?.annee || '')}"></div></div>
+    <div class="champ" id="bloc-timbre" ${(e?.categorie || 'service') === 'vapeur' ? '' : 'hidden'}><label for="timbre">Timbre de la chaudière : valable jusqu'au <span class="aide">(date limite d'utilisation, puis requalification)</span></label>
+      <input class="saisie" type="date" id="timbre" value="${esc(e?.timbre_valide_jusqu || '')}"></div>
     <div class="champ"><label for="cons">Constructeur</label><input class="saisie" id="cons" value="${esc(e?.constructeur || '')}"></div>
     <div class="champ"><label for="notes">Remarque affichée sur la fiche <span class="aide">(facultatif)</span></label><textarea class="saisie" id="notes" style="min-height:64px">${esc(e?.notes || '')}</textarea></div>
     <div class="champ"><label for="fiche">Fiche technique <span class="aide">(une ligne par caractéristique, « Libellé : valeur »${e?.serie_nom ? ' ; vide = fiche de la série' : ''})</span></label>
@@ -164,6 +171,7 @@ export function formulaireEngin(ctx, e = null) {
     ${nouveau ? '' : '<button class="btn danger plein" id="supprimer">Supprimer définitivement</button>'}
     <div class="btns"><button class="btn neutre" id="annuler">Annuler</button><button class="btn" id="ok">Enregistrer</button></div>`,
     { focusChamp: false });
+  f.querySelector('#cat')?.addEventListener('change', (ev) => { f.querySelector('#bloc-timbre').hidden = ev.target.value !== 'vapeur'; });
   f.querySelector('#annuler').onclick = fermer;
   f.querySelector('#supprimer')?.addEventListener('click', () => demanderSuppression(ctx, e, fermer));
   f.querySelector('#ok').onclick = async (ev) => {
@@ -175,6 +183,7 @@ export function formulaireEngin(ctx, e = null) {
       return i > 0 ? [l.slice(0, i).trim(), l.slice(i + 1).trim()] : [l, ''];
     });
     const champs = { designation, surnom: val('#sur') || null, annee: val('#an') || null, constructeur: val('#cons') || null, notes: val('#notes') || null, fiche };
+    if ((nouveau ? val('#cat') : e.categorie) === 'vapeur') champs.timbre_valide_jusqu = val('#timbre') || null;
     if (!nouveau && f.querySelector('#retire').checked) champs.actif = false;
     ev.target.disabled = true;
     try {

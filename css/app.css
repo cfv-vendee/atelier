@@ -345,3 +345,11 @@ html[data-plateforme="android"], html[data-plateforme="autre"] { --reseau-haut: 
 .cv-choisi circle:not([fill="transparent"]), .cv-choisi rect, .cv-choisi path { filter: drop-shadow(0 0 4px rgba(23,92,211,.9)); }
 .cv-choisi .cv-t { fill: var(--bleu); }
 .carte-bouton-plan { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+
+/* Timbre de la chaudière (locomotives à vapeur) */
+.carte.timbre { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; }
+.carte.timbre b { display: flex; align-items: center; gap: 8px; font-size: 16px; }
+.carte.timbre span { font-size: 14px; }
+.carte.timbre-green { border-color: #A6D8B4; background: #ECF8EF; }
+.carte.timbre-orange { border-color: #F5C99A; background: var(--orange-fond); color: #6B2E00; }
+.carte.timbre-red { border-color: #F0A8A0; background: #FDECEA; color: #8C1D18; }

@@ -111,6 +111,7 @@ export function quand(date) {
 }
 
 const ICONES = {
+  chaudiere: '<path d="M3 13a2 2 0 0 1 2-2h11l4 2v4H5a2 2 0 0 1-2-2z"/><path d="M7 11V7h3v4M16 11V5h3v6M6 20v.01M12 20v.01M18 20v.01"/>',
   accueil: '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
   oeil: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
   'oeil-barre': '<path d="M10.6 5.2A9.9 9.9 0 0 1 12 5c6.5 0 10 7 10 7a18 18 0 0 1-3 3.9M6.6 6.6A18 18 0 0 0 2 12s3.5 7 10 7a9.6 9.6 0 0 0 4.2-.9"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/><path d="M3 3l18 18"/>',
@@ -132,6 +133,18 @@ const ICONES = {
 };
 export const icone = (nom, taille = 24, extra = '') =>
   `<svg width="${taille}" height="${taille}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" ${extra}>${ICONES[nom]}</svg>`;
+
+// Timbre de la chaudière (homologation) : date jusqu'à laquelle une locomotive à vapeur peut rouler, ensuite il faut la requalifier.
+export const dateLongue = (iso) => new Date(iso + 'T12:00:00').toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' });
+export function etatTimbre(iso) {
+  if (!iso) return null;
+  const auj = new Date(); auj.setHours(12, 0, 0, 0);
+  const jours = Math.round((new Date(iso + 'T12:00:00') - auj) / 86400000);       // la date indiquée est le dernier jour de validité
+  const date = dateLongue(iso);
+  if (jours < 0) return { cls: 'red', court: 'Timbre expiré', titre: 'Timbre expiré', detail: `La chaudière n’est plus homologuée depuis le ${date}. Elle doit être requalifiée avant toute utilisation.`, jours };
+  if (jours <= 90) return { cls: 'orange', court: jours === 0 ? 'Timbre : dernier jour' : `Timbre : ${jours} j`, titre: jours === 0 ? 'Timbre valable jusqu’à aujourd’hui' : `Timbre valable encore ${jours} jour${jours > 1 ? 's' : ''}`, detail: `Valable jusqu’au ${date}. Pensez à programmer la requalification de la chaudière.`, jours };
+  return { cls: 'green', court: '', titre: `Timbre valable jusqu’au ${date}`, detail: '', jours };
+}
 
 export function pastille(def) {
   return `<span class="pastille ${def.cls}">${esc(def.label)}</span>`;

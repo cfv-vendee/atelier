@@ -46,3 +46,6 @@ Actions mises de côté le 23/11/2026, à reprendre quand ce sera possible.
 - [ ] Ajouter les autres viaducs (OpenStreetMap n'en liste que 5) via « Ajouter un ouvrage ou un PN ».
 - [ ] Renseigner le type (automatique/non gardé/agricole) des PN et vérifier le classement évitement/tiroir.
 - [ ] Ajouter le PN 47, absent des données.
+
+## Timbre des chaudières (v1.11.0)
+- [ ] Renseigner la date de validité du timbre de chaque locomotive à vapeur : fiche de l'engin → « Modifier la fiche » (administrateur).
