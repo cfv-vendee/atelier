@@ -142,7 +142,7 @@ export function etatTimbre(iso) {
   const jours = Math.round((new Date(iso + 'T12:00:00') - auj) / 86400000);       // la date indiquée est le dernier jour de validité
   const date = dateLongue(iso);
   if (jours < 0) return { cls: 'red', court: 'Timbre expiré', titre: 'Timbre expiré', detail: `La chaudière n’est plus homologuée depuis le ${date}. Elle doit être requalifiée avant toute utilisation.`, jours };
-  if (jours <= 90) return { cls: 'orange', court: jours === 0 ? 'Timbre : dernier jour' : `Timbre : ${jours} j`, titre: jours === 0 ? 'Timbre valable jusqu’à aujourd’hui' : `Timbre valable encore ${jours} jour${jours > 1 ? 's' : ''}`, detail: `Valable jusqu’au ${date}. Pensez à programmer la requalification de la chaudière.`, jours };
+  if (jours <= 365) return { cls: 'orange', court: jours === 0 ? 'Timbre : dernier jour' : jours > 60 ? `Timbre : ${Math.round(jours / 30.44)} mois` : `Timbre : ${jours} j`, titre: jours === 0 ? 'Timbre valable jusqu’à aujourd’hui' : jours > 60 ? `Timbre valable encore ${Math.round(jours / 30.44)} mois` : `Timbre valable encore ${jours} jour${jours > 1 ? 's' : ''}`, detail: `Valable jusqu’au ${date}. La requalification est longue : à programmer dès maintenant.`, jours };
   return { cls: 'green', court: '', titre: `Timbre valable jusqu’au ${date}`, detail: '', jours };
 }
 
