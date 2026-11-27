@@ -56,6 +56,7 @@ function pkAuPoint(q) {
 
 const TYPES_PN = {
   auto: { label: 'Automatique', detail: 'équipé de feux et de barrières automatiques', couleur: '#175CD3' },
+  non_garde: { label: 'Non gardé', detail: 'route goudronnée, sans système automatique', couleur: '#C26A00' },
   agricole: { label: 'Agricole', detail: 'passage à niveau agricole', couleur: '#3B7D3A' },
   inconnu: { label: 'Type non renseigné', detail: 'à renseigner par un référent voie (Modifier)', couleur: '#8A919C' },
 };
@@ -92,7 +93,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
     ${peutModifier ? `<div class="cv-edition"><button type="button" class="btn neutre" data-ajout>${'+'} Ajouter un ouvrage ou un PN</button>
       ${retires.length ? `<button type="button" class="btn neutre" data-retablir>Éléments retirés de la carte (${retires.length})</button>` : ''}</div>` : ''}
     <div class="cv-legende" aria-label="Légende">
-      <span><i class="cv-l-pn" style="background:#175CD3"></i>PN automatique</span><span><i class="cv-l-pn" style="background:#3B7D3A"></i>PN agricole</span>
+      <span><i class="cv-l-pn" style="background:#175CD3"></i>PN automatique</span><span><i class="cv-l-pn" style="background:#C26A00"></i>PN non gardé</span><span><i class="cv-l-pn" style="background:#3B7D3A"></i>PN agricole</span>
       <span><i class="cv-l-pn" style="background:#8A919C"></i>PN type non renseigné</span><span><i class="cv-l-li" style="background:#175CD3"></i>Évitement</span>
       <span><i class="cv-l-li" style="background:#7A3FB0"></i>Tiroir</span><span><i class="cv-l-li" style="background:#7A5C2E"></i>Viaduc, pont</span></div>
     <p class="aide cv-source">Tracé, gares et passages à niveau : © contributeurs OpenStreetMap. PK : SNCF Réseau, via Carto Tchoo. Données à confirmer avec le relevé de terrain.</p>`;
@@ -337,7 +338,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
     const pkInitial = pkTexte(d.pk);
     let corps = '';
     if (ajoute && m.genre === 'pn') corps += `<label class="champ"><span class="etiquette">Nom</span><input class="saisie" id="nom" maxlength="120" value="${esc(b.nom ?? d.nom ?? '')}"></label>`;
-    if (m.genre === 'pn') corps += `<p class="aide">Type du passage à niveau</p>${choix('type', [['auto', 'Automatique'], ['agricole', 'Agricole']], b.type ?? (['auto', 'agricole'].includes(d.type) ? d.type : ''))}`;
+    if (m.genre === 'pn') corps += `<p class="aide">Type du passage à niveau</p>${choix('type', [['auto', 'Automatique'], ['non_garde', 'Non gardé'], ['agricole', 'Agricole']], b.type ?? (['auto', 'non_garde', 'agricole'].includes(d.type) ? d.type : ''))}`;
     if (m.genre === 'annexe') corps = `<p class="aide">Classement de cette voie</p>${choix('genre', [['evitement', 'Évitement'], ['tiroir', 'Tiroir']], d.genre)}`;
     if (m.genre === 'ouvrage') corps = `<label class="champ"><span class="etiquette">Nom (facultatif)</span><input class="saisie" id="nom" maxlength="120" value="${esc(b.nom ?? d.nom ?? '')}"></label>
       <p class="aide">Type d’ouvrage</p>${choix('genre', [['viaduc', 'Viaduc'], ['pont', 'Pont'], ['tunnel', 'Tunnel']], b.genre ?? d.genre)}`;
@@ -367,7 +368,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
         if (!txt || Number.isNaN(pk) || !pkDansLaLigne(pk)) throw new Error(messagePkHorsLigne);
         if (ajoute || f.querySelector('#pk').value.trim() !== pkInitial) champs.pk = pk;      // PN d'origine : on ne l'enregistre que s'il a été changé
       }
-      if (!ajoute && m.genre === 'pn' && champs.pn_type === undefined && champs.pk === undefined) throw new Error('Choisissez Automatique ou Agricole, ou changez la position.');
+      if (!ajoute && m.genre === 'pn' && champs.pn_type === undefined && champs.pk === undefined) throw new Error('Choisissez le type du passage à niveau, ou changez la position.');
       await onSauver({ ...base, ...champs, masque: false });
     }, fermer);
     f.querySelector('[data-retirer]').onclick = () => enregistrer(async () => {
@@ -395,7 +396,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
       <label class="champ"><span class="etiquette">Nom</span><input class="saisie" id="nom" maxlength="120" placeholder="ex. Viaduc de Barbin" value="${esc(b.nom || '')}"></label>
       <label class="champ"><span class="etiquette">PK</span><input class="saisie" id="pk" inputmode="decimal" placeholder="ex. 64,2" value="${esc(b.pk || '')}"></label>
       <button type="button" class="btn neutre" data-placer>Placer sur la carte</button>
-      <div id="bloc-pn" ${(b.genre || 'viaduc') === 'pn' ? '' : 'hidden'}><p class="aide">Type du passage à niveau</p>${choix('type', [['auto', 'Automatique'], ['agricole', 'Agricole']], b.type || '')}</div>
+      <div id="bloc-pn" ${(b.genre || 'viaduc') === 'pn' ? '' : 'hidden'}><p class="aide">Type du passage à niveau</p>${choix('type', [['auto', 'Automatique'], ['non_garde', 'Non gardé'], ['agricole', 'Agricole']], b.type || '')}</div>
       <p class="erreur" id="err" role="alert"></p><button type="button" class="btn grand" data-ok>Ajouter</button>`, { focusChamp: false });
     brancherChoix(f);
     f.querySelector('[data-groupe="genre"]').addEventListener('click', () => { f.querySelector('#bloc-pn').hidden = lireChoix(f, 'genre') !== 'pn'; });

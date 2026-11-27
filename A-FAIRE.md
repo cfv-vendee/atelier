@@ -37,12 +37,12 @@ Actions mises de côté le 23/11/2026, à reprendre quand ce sera possible.
 
 ## Plan de la ligne (v1.10.0)
 - [x] Carte vectorielle hors ligne : tracé, PK, gares, PN, évitements, tiroirs, problèmes en cours (`js/carte-voie.js`, données générées par `outils/generer-carte-voie.py`)
-- [ ] Types de PN (automatique / agricole) : seuls 3 sur 17 sont renseignés dans OpenStreetMap, les autres sont « non renseignés »
+- [ ] Types de PN (automatique / non gardé / agricole) : seuls 3 sur 17 sont renseignés dans OpenStreetMap, les autres sont « non renseignés »
 - [ ] Évitements et tiroirs : classement automatique d'après OpenStreetMap, à vérifier sur le terrain (gares des Herbiers, Saint-Laurent, Mortagne)
 - [ ] PN 47 manquant dans OpenStreetMap ; PN 56 hors du tracé retenu ; confirmer les PK avec le relevé de terrain
 
 ## Plan de la ligne — v1.10.1 (ouvrages + corrections)
 - [ ] Nommer le grand « pont » de ~1 km vers le PK 64 (probablement le viaduc de Barbin) : toucher l'ouvrage → Modifier.
 - [ ] Ajouter les autres viaducs (OpenStreetMap n'en liste que 5) via « Ajouter un ouvrage ou un PN ».
-- [ ] Renseigner le type (automatique/agricole) des PN et vérifier le classement évitement/tiroir.
+- [ ] Renseigner le type (automatique/non gardé/agricole) des PN et vérifier le classement évitement/tiroir.
 - [ ] Ajouter le PN 47, absent des données.
