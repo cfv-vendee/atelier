@@ -1,6 +1,6 @@
 // Garde l'appli disponible hors connexion (fichiers de l'interface).
 // À faire correspondre à VERSION dans js/version.js à chaque publication.
-const VERSION = 'atelier-v1.11.1';
+const VERSION = 'atelier-v1.11.2';
 // Ajoute un paramètre propre à cette version à chaque requête vers notre propre site : ni le CDN de
 // GitHub Pages, ni la mémoire HTTP du téléphone (différente de celle qu'on gère nous-même ci-dessous)
 // n'ont jamais vu cette adresse exacte avant, donc aucun des deux ne peut la resservir depuis une

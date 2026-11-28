@@ -61,7 +61,7 @@ const TYPES_PN = {
   inconnu: { label: 'Type non renseigné', detail: 'à renseigner par un référent voie (Modifier)', couleur: '#8A919C' },
 };
 const typePn = (p) => TYPES_PN[p.type] || TYPES_PN.inconnu;      // « barrieres » d'OpenStreetMap n'est pas un type : traité comme non renseigné
-const LIB_OUVRAGE = { viaduc: 'Viaduc', pont: 'Pont', tunnel: 'Tunnel' };
+const LIB_OUVRAGE = { viaduc: 'Viaduc', pont_route: 'Pont route', pont_rail: 'Pont rail', tunnel: 'Tunnel' };      // pont route : la route passe au-dessus de la ligne ; pont rail : la ligne passe dessus
 const COUL_OUVRAGE = '#7A5C2E';
 const mil = (c) => c[Math.floor(c.length / 2)];
 const cleDe = (prefixe, c) => { const p = mil(c); return `${prefixe}:${p[1].toFixed(4)},${p[0].toFixed(4)}`; };
@@ -106,7 +106,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   // ── Éléments du plan d'origine, avec les corrections des référents voie ──
   const annexes = ANNEXES.map((x) => { const cle = cleDe('annexe', x.c), c = corr.get(cle); return { ...x, cle, corr: c, genre: c?.genre || x.genre, masque: !!c?.masque }; }).filter((x) => !x.masque);
   const ouvrages = OUVRAGES.map((o) => {
-    const cle = cleDe('ouvrage', o.c), c = corr.get(cle), defaut = o.genre === 'pont' && o.longueur >= 100 ? 'viaduc' : o.genre;
+    const cle = cleDe('ouvrage', o.c), c = corr.get(cle), defaut = o.genre === 'pont' ? (o.longueur >= 100 ? 'viaduc' : 'pont_rail') : o.genre;      // OpenStreetMap : pont porté par la ligne
     return { ...o, cle, corr: c, genre: c?.genre || defaut, nom: c?.nom || o.nom, masque: !!c?.masque };
   }).filter((o) => !o.masque);
   const pns = VOIE.pn.map((q) => { const cle = 'pn:' + q.nom, c = corr.get(cle); return { ...q, cle, corr: c, type: c?.pn_type || q.type, pk: c?.pk != null ? Number(c.pk) : q.pk, deplace: c?.pk != null, masque: !!c?.masque }; }).filter((q) => !q.masque);
@@ -114,7 +114,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   // ── Tracé : annexes, ouvrages, puis ligne principale « façon rail » ──
   const gAnn = el('g', {}, gLignes);
   annexes.forEach((x) => el('path', { d: chemin(x.m), fill: 'none', stroke: COUL_ANNEXE[x.genre], 'stroke-width': 3.5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, gAnn));
-  ouvrages.filter((o) => o.genre !== 'tunnel').forEach((o) => el('path', { d: chemin(o.m), fill: 'none', stroke: COUL_OUVRAGE, 'stroke-width': 11, 'stroke-linecap': 'butt', 'vector-effect': 'non-scaling-stroke', opacity: .55 }, gLignes));
+  ouvrages.filter((o) => o.genre === 'viaduc' || o.genre === 'pont_rail').forEach((o) => el('path', { d: chemin(o.m), fill: 'none', stroke: COUL_OUVRAGE, 'stroke-width': 11, 'stroke-linecap': 'butt', 'vector-effect': 'non-scaling-stroke', opacity: .55 }, gLignes));
   el('path', { d: chemin(LIGNE), fill: 'none', stroke: '#fff', 'stroke-width': 9, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke', opacity: .9 }, gLignes);
   el('path', { d: chemin(LIGNE), fill: 'none', stroke: '#2F3540', 'stroke-width': 5, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', 'vector-effect': 'non-scaling-stroke' }, gLignes);
   el('path', { d: chemin(LIGNE), fill: 'none', stroke: '#FFFFFF', 'stroke-width': 1.6, 'stroke-dasharray': '6 6', 'vector-effect': 'non-scaling-stroke' }, gLignes);
@@ -341,7 +341,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
     if (m.genre === 'pn') corps += `<p class="aide">Type du passage à niveau</p>${choix('type', [['auto', 'Automatique'], ['non_garde', 'Non gardé'], ['agricole', 'Agricole']], b.type ?? (['auto', 'non_garde', 'agricole'].includes(d.type) ? d.type : ''))}`;
     if (m.genre === 'annexe') corps = `<p class="aide">Classement de cette voie</p>${choix('genre', [['evitement', 'Évitement'], ['tiroir', 'Tiroir']], d.genre)}`;
     if (m.genre === 'ouvrage') corps = `<label class="champ"><span class="etiquette">Nom (facultatif)</span><input class="saisie" id="nom" maxlength="120" value="${esc(b.nom ?? d.nom ?? '')}"></label>
-      <p class="aide">Type d’ouvrage</p>${choix('genre', [['viaduc', 'Viaduc'], ['pont', 'Pont'], ['tunnel', 'Tunnel']], b.genre ?? d.genre)}`;
+      <p class="aide">Type d’ouvrage</p>${choix('genre', [['viaduc', 'Viaduc'], ['pont_route', 'Pont route'], ['pont_rail', 'Pont rail'], ['tunnel', 'Tunnel']], b.genre ?? d.genre).replace('class="segments "', 'class="segments cv-quatre"')}`;
     if (positionnable) corps += `<label class="champ"><span class="etiquette">PK</span><input class="saisie" id="pk" inputmode="decimal" value="${esc(b.pk ?? pkInitial)}"></label>
       <button type="button" class="btn neutre" data-placer>Placer sur la carte</button>
       ${d.deplace ? '<button type="button" class="btn neutre" data-origine>Remettre à l’emplacement d’origine</button>' : ''}`;
@@ -392,7 +392,7 @@ export function monterCarte(conteneur, { pannes = [], corrections = [], peutModi
   function ajouterElement(b = {}) {
     const { el: f, fermer } = feuille('Ajouter à la carte', `
       <p class="aide">Ce qui manque sur la carte : un ouvrage ou un passage à niveau. Indiquez son PK, ou placez-le directement sur la carte.</p>
-      ${choix('genre', [['viaduc', 'Viaduc'], ['pont', 'Pont'], ['tunnel', 'Tunnel'], ['pn', 'Passage à niveau']], b.genre || 'viaduc').replace('class="segments "', 'class="segments cv-quatre"')}
+      ${choix('genre', [['viaduc', 'Viaduc'], ['pont_route', 'Pont route'], ['pont_rail', 'Pont rail'], ['tunnel', 'Tunnel'], ['pn', 'Passage à niveau']], b.genre || 'viaduc').replace('class="segments "', 'class="segments cv-quatre"')}
       <label class="champ"><span class="etiquette">Nom</span><input class="saisie" id="nom" maxlength="120" placeholder="ex. Viaduc de Barbin" value="${esc(b.nom || '')}"></label>
       <label class="champ"><span class="etiquette">PK</span><input class="saisie" id="pk" inputmode="decimal" placeholder="ex. 64,2" value="${esc(b.pk || '')}"></label>
       <button type="button" class="btn neutre" data-placer>Placer sur la carte</button>
